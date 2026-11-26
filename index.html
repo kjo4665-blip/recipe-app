@@ -1,10 +1,11 @@
-<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><title>영수증 정리</title>
-<meta name="theme-color" content="#121826">
+<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><title>오늘얼마</title>
+<meta name="theme-color" content="#F76707">
+<script>(function(){var t="bang";try{t=localStorage.getItem("receipt-app.theme")||"bang"}catch(e){}document.documentElement.setAttribute("data-theme",t)})()</script>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/icon-192.png">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" href="/favicon-48.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Jua&family=Do+Hyeon&family=Gaegu:wght@700&family=Dongle:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -13,8 +14,9 @@
   --warn:#9A4A00; --warn-soft:#FFF0DC; --ok:#1E6B47; --ok-soft:#E1F3EA;
   --sans:'IBM Plex Sans KR',system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Consolas,monospace;
+  --tf:var(--sans); --tw:700; --nf:var(--mono); --r:14px; --r2:12px;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+@media (prefers-color-scheme:dark){:root[data-theme="base"]{
   --bg:#0E121A; --surface:#171C27; --sunk:#202736; --line:#2A3242;
   --ink:#EEF1F7; --sub:#A3ADBE; --accent:#7B9BFF; --accent-ink:#0E121A; --accent-soft:#1F2A4A;
   --warn:#FFB867; --warn-soft:#3A2A14; --ok:#7FD3A8; --ok-soft:#173326}}
@@ -96,7 +98,7 @@ button.pill{min-height:44px;padding:6px 14px;display:inline-flex;align-items:cen
 .copybox{background:var(--surface);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
 textarea{width:100%;height:140px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px;font:13px/1.4 var(--mono)}
 .failcard{background:var(--surface);border-radius:14px;padding:14px 16px;box-shadow:inset 3px 0 0 var(--warn)}
-.storebtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;max-width:62vw;padding:6px 12px 6px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px;font-weight:700;letter-spacing:-.2px}
+.storebtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;max-width:100%;padding:6px 12px 6px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px;font-weight:700;letter-spacing:-.2px}
 .storebtn .sn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
 .item .nm .dot{margin-right:-2px}
@@ -186,6 +188,66 @@ textarea{width:100%;height:140px;border-radius:10px;border:1px solid var(--line)
 .swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
 .sw{aspect-ratio:1;border-radius:50%;border:3px solid transparent;min-width:28px}
 .sw.on{border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--surface)}
+/* ===== themes ===== */
+.num{font-family:var(--nf)}
+.title,.sec h2,.hmlabel,.done h1,.modal h2,.monthnav .title{font-family:var(--tf);font-weight:var(--tw)}
+.list,.form,.empty,.copybox,.mcard,.failcard,.note,.err{border-radius:var(--r)}
+.btn,.storebtn,.iconbtn,.cat,.sopt,.dlginput{border-radius:var(--r2)}
+.logo{display:flex;align-items:center;gap:8px}
+.logo img{width:30px;height:30px;border-radius:9px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.logo span{font-family:'Jua',var(--sans);font-size:24px;line-height:1;color:var(--ink)}
+.logo b{font-weight:400;color:#F76707}
+.loginlogo{display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px 0 10px;text-align:center}
+.loginlogo img{width:96px;height:96px;border-radius:24px;box-shadow:0 10px 24px rgba(0,0,0,.15)}
+.loginlogo .nm{font-family:'Jua',var(--sans);font-size:44px;line-height:1;color:var(--ink)}
+.loginlogo .nm b{font-weight:400;color:#F76707}
+.loginlogo .tg{font-family:'Jua',var(--sans);font-size:17px;color:var(--sub)}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tcard{border:2px solid var(--line);border-radius:14px;padding:8px;background:var(--surface);text-align:left;display:flex;flex-direction:column;gap:6px;min-height:44px}
+.tcard.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.tprev{border-radius:10px;height:86px;padding:8px;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.tprev .pc{border-radius:7px;padding:6px 8px;font-size:15px;line-height:1.1}
+.tprev .pb{height:8px;border-radius:999px}
+.tname{font-weight:700;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+/* 방긋 */
+:root[data-theme="bang"]{--bg:#FFF4D6;--surface:#FFFDF6;--sunk:#FCEBCB;--line:#F3DFC0;--ink:#3B2F2F;--sub:#8A6A4F;--accent:#F76707;--accent-ink:#fff;--accent-soft:#FFE8CC;
+  --warn:#B35400;--warn-soft:#FFE3C2;--ok:#2B8A3E;--ok-soft:#E3F6E7;--tf:'Jua';--tw:400;--nf:'Jua';--r:22px;--r2:999px;color-scheme:light}
+[data-theme="bang"] .slip{border-radius:var(--r);border:2px solid var(--line);box-shadow:0 4px 0 var(--line);margin-bottom:4px}
+[data-theme="bang"] .slip::after{display:none}
+[data-theme="bang"] .slip .big{color:var(--accent)}
+[data-theme="bang"] .list,[data-theme="bang"] .form,[data-theme="bang"] .empty,[data-theme="bang"] .mcard{border:2px solid var(--line)}
+[data-theme="bang"] .btn{font-family:'Jua';font-weight:400;font-size:16px;border-width:2px}
+[data-theme="bang"] .btn.primary{box-shadow:0 5px 0 #C24E00}
+[data-theme="bang"] .item .nm,[data-theme="bang"] .storebtn,[data-theme="bang"] .tool{font-family:'Jua';font-weight:400}
+[data-theme="bang"] .storebtn,[data-theme="bang"] .tool,[data-theme="bang"] .iconbtn{border-width:2px}
+/* 다이어리 */
+:root[data-theme="diary"]{--bg:#F7F1E3;--surface:#FFFDF7;--sunk:#EFE6D3;--line:#E5D9C3;--ink:#3E3A35;--sub:#8A7F70;--accent:#D9480F;--accent-ink:#fff;--accent-soft:#FDEBD8;
+  --warn:#A6461A;--warn-soft:#FCE3D2;--ok:#2F7D4F;--ok-soft:#E4F3E8;--tf:'Gaegu';--tw:700;--r:6px;--r2:8px;color-scheme:light}
+[data-theme="diary"] body,[data-theme="diary"]{background:repeating-linear-gradient(#F7F1E3 0 27px,#EADFC9 27px 28px)}
+[data-theme="diary"] .slip{border-radius:6px;transform:rotate(-.5deg);border:1.5px solid var(--line);box-shadow:2px 3px 0 rgba(120,100,70,.12);margin:8px 0 4px}
+[data-theme="diary"] .slip::after{content:"";left:50%;right:auto;top:-10px;bottom:auto;width:88px;height:18px;margin-left:-44px;background:rgba(255,169,77,.55);transform:rotate(-3deg)}
+[data-theme="diary"] .list,[data-theme="diary"] .form,[data-theme="diary"] .empty,[data-theme="diary"] .mcard{border:1.5px solid var(--line);box-shadow:2px 3px 0 rgba(120,100,70,.10)}
+[data-theme="diary"] .title,[data-theme="diary"] .sec h2,[data-theme="diary"] .hmlabel{font-size:1.3em}
+[data-theme="diary"] .item .nm,[data-theme="diary"] .btn,[data-theme="diary"] .cat,[data-theme="diary"] .crow .cn{font-family:'Gaegu';font-weight:700;font-size:17px}
+/* 나이트 */
+:root[data-theme="night"]{--bg:#16120E;--surface:#231D17;--sunk:#2E2620;--line:#3A3027;--ink:#F5EBDD;--sub:#B8A994;--accent:#FFC933;--accent-ink:#16120E;--accent-soft:#3A2F12;
+  --warn:#FFB867;--warn-soft:#3A2A14;--ok:#7FD3A8;--ok-soft:#173326;--tf:'Do Hyeon';--tw:400;--nf:'Do Hyeon';--r:16px;--r2:12px;color-scheme:dark}
+[data-theme="night"] .slip{border-radius:var(--r);border:1px solid var(--line);margin-bottom:4px}
+[data-theme="night"] .slip::after{display:none}
+[data-theme="night"] .slip .big{color:var(--accent)}
+[data-theme="night"] .btn.primary{box-shadow:0 6px 18px rgba(255,201,51,.25)}
+[data-theme="night"] .item .nm,[data-theme="night"] .btn{font-family:'Do Hyeon';font-weight:400;font-size:16px}
+[data-theme="night"] .logo b,[data-theme="night"] .loginlogo .nm b{color:#FFC933}
+/* 민트 */
+:root[data-theme="mint"]{--bg:#E6FAF3;--surface:#FFFFFF;--sunk:#DDF5EC;--line:#D3F0E6;--ink:#0B3D3A;--sub:#5B7F7A;--accent:#12B886;--accent-ink:#fff;--accent-soft:#D3F9EA;
+  --warn:#B35400;--warn-soft:#FFF0DC;--ok:#0B7285;--ok-soft:#D0F4F0;--tf:'Dongle';--tw:700;--r:22px;--r2:16px;color-scheme:light}
+[data-theme="mint"] .slip{border-radius:var(--r);box-shadow:0 6px 18px rgba(18,184,134,.12);margin-bottom:4px}
+[data-theme="mint"] .slip::after{display:none}
+[data-theme="mint"] .slip .big{font-family:'Dongle';font-size:58px;line-height:.85;margin-top:6px}
+[data-theme="mint"] .list,[data-theme="mint"] .form,[data-theme="mint"] .empty,[data-theme="mint"] .mcard{border:0;box-shadow:0 6px 18px rgba(18,184,134,.10)}
+[data-theme="mint"] .btn{border:0;background:#F3FCF9}
+[data-theme="mint"] .btn.primary{background:linear-gradient(135deg,#20C997,#0CA678);box-shadow:0 8px 18px rgba(18,184,134,.3)}
+[data-theme="mint"] .title,[data-theme="mint"] .sec h2,[data-theme="mint"] .hmlabel,[data-theme="mint"] .modal h2{font-size:1.75em;line-height:1}
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
 #toast.on{opacity:1}
 </style>
@@ -364,7 +426,7 @@ function storeBtn(){
     (S.store==='all'?dot('var(--ink)'):dot(storeColor(S.store)))+'<span class="sn">'+esc(storeLabel())+'</span>'+CARET+'</button>'}
 function vLogin(){
   return ''+
-  '<div class="top"><div class="brand"><i>'+LOGO+'</i>영수증 정리</div></div>'+
+  '<div class="loginlogo"><img src="/icon-192.png" alt=""><div class="nm">오늘<b>얼마</b></div><div class="tg">오늘 얼마 썼지? 찍으면 끝!</div></div>'+
   (S.loginMsg?'<div class="err" role="alert">'+esc(S.loginMsg)+'</div>':'')+
   '<div class="form">'+
     '<div class="field"><label for="em">이메일</label><input id="em" type="email" inputmode="email" autocomplete="username" value="'+esc(S.email)+'"></div>'+
@@ -378,7 +440,7 @@ function vLogin(){
 function vLoading(){return '<div class="busy"><div class="spin" role="img" aria-label="불러오는 중"></div><h1>불러오는 중</h1></div>'}
 function vNoAccess(){
   return ''+
-  '<div class="top"><div class="brand"><i>'+LOGO+'</i>영수증 정리</div></div>'+
+  '<div class="loginlogo"><img src="/icon-192.png" alt=""><div class="nm">오늘<b>얼마</b></div><div class="tg">오늘 얼마 썼지? 찍으면 끝!</div></div>'+
   '<div class="slip"><div class="lbl">등록되지 않은 계정</div><div style="font-size:15px;margin-top:8px">이 이메일은 아직 직원으로 등록되지 않았어요.</div>'+
   '<div class="sub" style="font-size:14px;margin-top:8px">관리자에게 아래 이메일을 직원으로 추가해 달라고 요청해 주세요.</div>'+
   '<div class="num" style="margin-top:10px;font-weight:600;word-break:break-all">'+esc(S.myEmail)+'</div></div>'+
@@ -397,7 +459,8 @@ function vHome(){
   var recent=monthEntries(m).sort(function(a,b){return (b.at||0)-(a.at||0)}).slice(0,4);
   var noStore=!S.stores.length;var dis=noStore?' disabled':'';
   return ''+
-  '<div class="top">'+storeBtn()+'<div class="tools"><button class="tool" data-act="stats">통계</button><button class="tool" data-act="backup">백업</button><button class="tool" data-act="help" aria-label="도움말">?</button></div></div>'+
+  '<div class="top"><div class="logo"><img src="/icon-192.png" alt=""><span>오늘<b>얼마</b></span></div><div class="tools"><button class="tool" data-act="stats">통계</button><button class="tool" data-act="backup">백업</button><button class="tool" data-act="theme">테마</button><button class="tool" data-act="help" aria-label="도움말">?</button></div></div>'+
+  '<div>'+storeBtn()+'</div>'+
   monthNav()+
   (S.err?'<div class="err" role="alert">'+esc(S.err)+'</div>':'')+
   (noStore?'<div class="err">'+(isAdmin()?'매장을 먼저 추가해 주세요. 왼쪽 위 매장 버튼을 누르세요.':'배정된 매장이 없어요. 관리자에게 요청해 주세요.')+'</div>':'')+
@@ -504,6 +567,15 @@ function vBackup(){
   '<div class="fname">앱으로 다시 가져올 수 있는 파일이에요.</div>'+
   (isAdmin()?'<div class="sec"><h2>백업 파일 가져오기</h2></div><button class="btn" data-act="importjson">백업 파일 선택</button>'+
     '<div class="fname">이미 있는 기록은 건드리지 않고, 없는 기록만 추가해요.</div>':'')}
+var THEMES=[
+  {id:'bang',name:'방긋',desc:'노랑·주황 · 주아체',bg:'#FFF4D6',sf:'#FFFDF6',ac:'#F76707',ink:'#3B2F2F',f:"'Jua'"},
+  {id:'base',name:'기본',desc:'파랑 · 깔끔한 고딕',bg:'#F3F5F9',sf:'#FFFFFF',ac:'#2B59E8',ink:'#121826',f:'var(--sans)'},
+  {id:'diary',name:'다이어리',desc:'종이 · 손글씨',bg:'#F7F1E3',sf:'#FFFDF7',ac:'#D9480F',ink:'#3E3A35',f:"'Gaegu'"},
+  {id:'night',name:'나이트',desc:'어두운 화면 · 도현체',bg:'#16120E',sf:'#231D17',ac:'#FFC933',ink:'#F5EBDD',f:"'Do Hyeon'"},
+  {id:'mint',name:'민트',desc:'청록 파스텔 · 동글',bg:'#E6FAF3',sf:'#FFFFFF',ac:'#12B886',ink:'#0B3D3A',f:"'Dongle'"}];
+function curTheme(){return document.documentElement.getAttribute('data-theme')||'bang'}
+function setTheme(id){document.documentElement.setAttribute('data-theme',id);try{localStorage.setItem('receipt-app.theme',id)}catch(e){}
+  var t=THEMES.filter(function(x){return x.id===id})[0];var m=document.querySelector('meta[name=theme-color]');if(m&&t)m.setAttribute('content',id==='bang'?'#F76707':t.bg)}
 var HELP=[
   {t:'영수증을 찍으면 끝',d:'<b>영수증 찍기</b>를 누르고 영수증을 찍으면 금액·날짜·가게·분류를 읽어서 채워 줘요. 확인하고 <b>저장하기</b>만 누르세요.',
    m:'<div class="hm-card"><div class="hm-lbl">금액</div><div class="hm-amt num">5,600원</div><div class="hm-row"><span>날짜</span><b>11월 21일</b></div><div class="hm-row"><span>가게</span><b>동네편의점</b></div><div class="hm-btn">저장하기</div></div>'},
@@ -511,7 +583,7 @@ var HELP=[
    m:'<div class="hm-card"><div class="hm-lbl">금액</div><div class="hm-amt num">12,000원</div><div class="cats mini">'+['식비','카페·간식','장보기','교통·주유','생활용품','기타'].map(function(c,i){return '<span class="cat'+(i===0?' on':'')+'" style="--c:'+catColor(c)+'">'+dot(catColor(c))+c+'</span>'}).join('')+'</div></div>'},
   {t:'한 달에 얼마 썼을까?',d:'첫 화면 위에서 <b>‹ 달 ›</b>을 넘기며 그 달 쓴 돈과 분류별 막대를 볼 수 있어요. <b>통계</b>에서 지난달과 비교도 돼요.',
    m:'<div class="hm-card"><div class="hm-lbl">이번 달 쓴 돈</div><div class="hm-amt num">366,900원</div><div class="cbar">'+[['식비',38],['장보기',46],['교통·주유',63],['카페·간식',11]].map(function(x){return '<span style="flex:'+x[1]+';background:'+catColor(x[0])+'"></span>'}).join('')+'</div></div>'},
-  {t:'매장 선택과 정리',d:'왼쪽 위 <b>매장 버튼</b>으로 매장을 바꿔요. <b>월별 내역</b>에서 정산표용으로 복사하고, <b>백업</b>에서 전체 기록을 파일로 받을 수 있어요.',
+  {t:'매장 · 정리 · 테마',d:'<b>매장 버튼</b>으로 매장을 바꾸고, <b>월별 내역</b>에서 정산표용으로 복사해요. <b>백업</b>에서 전체 기록을 받고, <b>테마</b>에서 화면 분위기를 바꿀 수 있어요.',
    m:'<div class="hm-card"><div class="storebtn" style="pointer-events:none">'+dot('#2B59E8')+'<span class="sn">매장 선택</span>'+CARET+'</div><div class="hm-row" style="margin-top:12px"><span>월별 내역</span><b>정산표용 복사</b></div><div class="hm-row"><span>백업</span><b>CSV · JSON</b></div></div>'}
 ];
 function vCats(){
@@ -633,6 +705,13 @@ function dlgHtml(){
     var n=live().filter(function(e){return e.category===d.name}).length;
     inner='<h2>분류를 삭제하시겠습니까?</h2><div class="sub">'+esc(d.name)+(n?'<br>이 분류의 기록 <b class="num">'+n+'건</b>은 <b>기타</b>로 옮겨져요':'')+'</div>'+
       '<div class="pair"><button class="btn sm" data-act="dlgclose">아니요</button><button class="btn sm primary" data-act="catdel-yes">예</button></div>';
+  }else if(d.type==='theme'){
+    var cur=curTheme();
+    inner='<h2>테마 고르기</h2><div class="sub">누르면 바로 바뀌어요. 이 폰에만 저장돼요.</div><div class="tgrid">'+THEMES.map(function(t){
+      return '<button class="tcard'+(cur===t.id?' on':'')+'" data-act="settheme" data-t="'+t.id+'" aria-pressed="'+(cur===t.id)+'">'+
+        '<div class="tprev" style="background:'+t.bg+'"><div class="pc" style="background:'+t.sf+';color:'+t.ink+';font-family:'+t.f+'">오늘얼마 ₩246,800</div><div class="pb" style="background:'+t.ac+'"></div></div>'+
+        '<div class="tname"><span>'+t.name+'</span>'+(cur===t.id?'<span style="color:var(--accent)">✓</span>':'')+'</div><div class="sub" style="font-size:12px">'+t.desc+'</div></button>'}).join('')+'</div>'+
+      '<button class="btn sm primary" data-act="dlgclose">완료</button>';
   }else if(d.type==='help'){
     var sl=HELP[d.i];
     inner='<div class="hhead"><h2>'+esc(sl.t)+'</h2><span class="hstep num">'+(d.i+1)+' / '+HELP.length+'</span><button class="iconbtn sm" data-act="dlgclose" aria-label="도움말 닫기">✕</button></div>'+
@@ -1016,6 +1095,8 @@ document.addEventListener('click',function(ev){
   else if(a==='stats')go('stats');
   else if(a==='backup')go('backup');
   else if(a==='help')openDlg({type:'help',i:0});
+  else if(a==='theme')openDlg({type:'theme'});
+  else if(a==='settheme'){setTheme(b.getAttribute('data-t'));render()}
   else if(a==='helpnext'){S.dlg.i++;render()}
   else if(a==='helpprev'){S.dlg.i--;render()}
   else if(a==='exportcsv')exportCsv();
@@ -1047,6 +1128,7 @@ $('#f-json').addEventListener('change',function(ev){var f=ev.target.files&&ev.ta
 ['#f-cam','#f-alb'].forEach(function(id){$(id).addEventListener('change',function(ev){var list=Array.prototype.slice.call(ev.target.files||[]);ev.target.value='';handleFiles(list)})});
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){})}
+setTheme(curTheme());
 S.view='loading';render();
 setTimeout(function(){if(!S.started&&S.view==='loading'){S.view='login';render()}},4000);
 })();
