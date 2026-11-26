@@ -1,5 +1,5 @@
 <!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><title>오늘얼마</title>
-<meta name="theme-color" content="#F76707">
+<meta name="theme-color" content="#FFF4D6">
 <script>(function(){var t="bang";try{t=localStorage.getItem("receipt-app.theme")||"bang"}catch(e){}document.documentElement.setAttribute("data-theme",t)})()</script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon-48.png">
@@ -575,7 +575,7 @@ var THEMES=[
   {id:'mint',name:'민트',desc:'청록 파스텔 · 동글',bg:'#E6FAF3',sf:'#FFFFFF',ac:'#12B886',ink:'#0B3D3A',f:"'Dongle'"}];
 function curTheme(){return document.documentElement.getAttribute('data-theme')||'bang'}
 function setTheme(id){document.documentElement.setAttribute('data-theme',id);try{localStorage.setItem('receipt-app.theme',id)}catch(e){}
-  var t=THEMES.filter(function(x){return x.id===id})[0];var m=document.querySelector('meta[name=theme-color]');if(m&&t)m.setAttribute('content',id==='bang'?'#F76707':t.bg)}
+  var t=THEMES.filter(function(x){return x.id===id})[0];var m=document.querySelector('meta[name=theme-color]');if(m&&t)m.setAttribute('content',t.bg)}
 var HELP=[
   {t:'영수증을 찍으면 끝',d:'<b>영수증 찍기</b>를 누르고 영수증을 찍으면 금액·날짜·가게·분류를 읽어서 채워 줘요. 확인하고 <b>저장하기</b>만 누르세요.',
    m:'<div class="hm-card"><div class="hm-lbl">금액</div><div class="hm-amt num">5,600원</div><div class="hm-row"><span>날짜</span><b>11월 21일</b></div><div class="hm-row"><span>가게</span><b>동네편의점</b></div><div class="hm-btn">저장하기</div></div>'},
