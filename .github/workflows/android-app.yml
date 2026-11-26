@@ -51,10 +51,10 @@ jobs:
           chmod +x gradlew
           if [ -n "$KEYSTORE_FILE" ]; then
             ./gradlew --no-daemon assembleRelease
-            cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/오늘얼마-가계부-${VERSION_NAME}.apk"
+            cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/oneul-eolma-${VERSION_NAME}.apk"
           else
             ./gradlew --no-daemon assembleDebug
-            cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/오늘얼마-가계부-${VERSION_NAME}-테스트용.apk"
+            cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/oneul-eolma-${VERSION_NAME}-test.apk"
           fi
       - name: 빌드 결과 보관
         uses: actions/upload-artifact@v4
