@@ -96,6 +96,34 @@ button.pill{min-height:44px;padding:6px 14px;display:inline-flex;align-items:cen
 .copybox{background:var(--surface);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
 textarea{width:100%;height:140px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px;font:13px/1.4 var(--mono)}
 .failcard{background:var(--surface);border-radius:14px;padding:14px 16px;box-shadow:inset 3px 0 0 var(--warn)}
+.storebtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;max-width:62vw;padding:6px 12px 6px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px;font-weight:700;letter-spacing:-.2px}
+.storebtn .sn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+.item .nm .dot{margin-right:-2px}
+.by{color:var(--accent);font-weight:600}
+.footrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:6px 2px;font-size:13px}
+.link.muted{color:var(--sub)}
+.danger,.btn.quiet.danger,.link.danger{color:#C62828}
+@media (prefers-color-scheme:dark){.danger,.btn.quiet.danger,.link.danger{color:#FF8A80}}
+.field select{font:600 17px var(--sans);border:0;background:transparent;color:var(--ink);padding:4px 0;width:100%;outline:none}
+.field select:disabled,.field input:disabled{opacity:.7}
+.cks{display:flex;flex-wrap:wrap;gap:8px}
+.ck{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+.ck input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.mcard{background:var(--surface);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.mhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.mcard .link{padding:6px 0;min-height:36px;text-align:left}
+.slist{display:flex;flex-direction:column;gap:6px;text-align:left}
+.srow{display:flex;align-items:center;gap:8px}
+.sopt{flex:1;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:15px;font-weight:600;text-align:left}
+.sopt.on{border-color:var(--accent);background:var(--accent-soft)}
+.sopt .tick{margin-left:auto;color:var(--accent)}
+.srow .link{padding:0 6px}
+.dlginput{font:600 17px var(--sans);width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.modal .box .sub{font-size:14px;line-height:1.5}
+.modal .box{max-height:85vh;overflow:auto}
+#undobar{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:var(--ink);color:var(--bg);padding:8px 8px 8px 18px;border-radius:999px;font-size:14px;font-weight:600;z-index:40;max-width:92vw}
+#undobar button{border:0;background:var(--accent);color:#fff;font-weight:700;border-radius:999px;padding:0 16px;min-height:40px}
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
 #toast.on{opacity:1}
 </style>
@@ -110,19 +138,24 @@ var SB_URL='https://ahgnlnyfyyoietjyjnhc.supabase.co';
 var SB_KEY='sb_publishable__jO-LKY2dxdi2QXonfzaIQ_dIQd8G9c';
 var sb=window.supabase.createClient(SB_URL,SB_KEY);
 
-var KEY='receipt-app.v1';
+var KEY='receipt-app.v2';
+var SKEY='receipt-app.store';
+var PALETTE=['#2B59E8','#1E9E6A','#D9480F','#8E44AD','#C2185B','#00838F','#B7791F','#455A64'];
 var $=function(s){return document.querySelector(s)};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})};
 var won=function(n){return '₩'+Number(n||0).toLocaleString('ko-KR')};
 var pad=function(n){return String(n).padStart(2,'0')};
 function todayStr(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')||[]}catch(e){return[]}}
+function newId(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 var files=new Map();
 var S={view:'home',cur:null,month:todayStr().slice(0,7),err:'',entries:load(),copyText:'',batch:null,prog:null,
-  started:false,email:'',sending:false,sent:false,loginMsg:''};
+  started:false,email:'',sending:false,sent:false,loginMsg:'',
+  uid:null,myEmail:'',me:null,stores:[],store:null,lastStore:null,members:[],mstores:[],dlg:null,undo:null,busyMsg:''};
 var qTimers={};
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(S.entries))}catch(e){}}
-function toast(m){var t=$('#toast');t.textContent=m;t.className='on';clearTimeout(toast._t);toast._t=setTimeout(function(){t.className=''},2200)}
+function toast(m){var t=$('#toast');t.textContent=m;t.className='on';clearTimeout(toast._t);toast._t=setTimeout(function(){t.className=''},2400)}
 
 var LOGO='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9.5 9h5M9.5 13h3"/></svg>';
 var CHECK='<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -130,13 +163,27 @@ var CAM='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="cur
 var IMG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 16l5-5 4 4 3-3 4 4"/></svg>';
 var BACK='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 var NEXT='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+var CARET='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+/* ---------- roles & stores ---------- */
+function isAdmin(){return !!(S.me&&S.me.role==='admin')}
+function storeById(id){return S.stores.filter(function(s){return s.id===id})[0]}
+function storeName(id){var s=storeById(id);return s?s.name:'(삭제된 매장)'}
+function storeColor(id){var s=storeById(id);return s?s.color:'#999'}
+function storeLabel(){return S.store==='all'?'전체 매장':storeName(S.store)}
+function dot(c){return '<span class="dot" style="background:'+esc(c)+'" aria-hidden="true"></span>'}
+function canEdit(e){return isAdmin()||e.uid===S.uid}
+function targetStore(){return S.store&&S.store!=='all'?S.store:(S.lastStore&&storeById(S.lastStore)?S.lastStore:(S.stores[0]&&S.stores[0].id))}
+function setStore(id){S.store=id;if(id!=='all')S.lastStore=id;try{localStorage.setItem(SKEY,id)}catch(e){}}
 
 /* ---------- data helpers ---------- */
-function isDup(e){return S.entries.some(function(o){return o.id!==e.id&&o.date===e.date&&o.amount===e.amount})}
+function live(){return S.entries.filter(function(e){return !e.deleted})}
+function scoped(){return live().filter(function(e){return S.store==='all'||e.store===S.store})}
+function isDup(e){return live().some(function(o){return o.id!==e.id&&o.store===e.store&&o.date===e.date&&o.amount===e.amount})}
 function ext(e){var f=files.get(e.id);return f?f.ext:'jpg'}
 function cleanItem(s){return String(s||'영수증').replace(/[\\\/:*?"<>|\s]+/g,'').slice(0,20)||'영수증'}
 function fname(e){return e.date.replace(/-/g,'')+'_'+cleanItem(e.item)+'_'+(e.amount||0)+'.'+ext(e)}
-function monthEntries(m){return S.entries.filter(function(e){return e.date.slice(0,7)===m})}
+function monthEntries(m){return scoped().filter(function(e){return e.date.slice(0,7)===m})}
 function monthInfo(m){var p=m.split('-').map(Number);var last=new Date(p[0],p[1],0).getDate();var t=todayStr();var end=last;if(t.slice(0,7)===m)end=Number(t.slice(8));else if(t<m+'-01')end=0;return{y:p[0],mo:p[1],end:end,last:last}}
 function byDay(m){var info=monthInfo(m);var map={};monthEntries(m).forEach(function(e){(map[e.date]=map[e.date]||[]).push(e)});
   var days=[];for(var d=1;d<=Math.max(info.end,0);d++){var ds=m+'-'+pad(d);days.push({date:ds,d:d,list:map[ds]||[]})}
@@ -144,31 +191,56 @@ function byDay(m){var info=monthInfo(m);var map={};monthEntries(m).forEach(funct
   days.sort(function(a,b){return a.d-b.d});return days}
 function dayTotal(list){return list.reduce(function(s,e){return s+(e.amount||0)},0)}
 function monthTotal(m){return dayTotal(monthEntries(m))}
-function rowsFor(m){var rows=[];byDay(m).forEach(function(day){
+function rowsFor(m){var all=S.store==='all';var rows=[];byDay(m).forEach(function(day){
   if(!day.list.length){rows.push([day.date,0,'']);return}
-  day.list.forEach(function(e){rows.push([e.date,e.amount,e.item])});
+  day.list.forEach(function(e){rows.push([e.date,e.amount,(all?'['+storeName(e.store)+'] ':'')+e.item])});
   if(day.list.length>1)rows.push([day.date,dayTotal(day.list),'일 합계'])});return rows}
 function ml(m){var p=m.split('-');return p[0]+'년 '+Number(p[1])+'월'}
 function md(ds){return Number(ds.slice(5,7))+'월 '+Number(ds.slice(8))+'일'}
+function byId(id){return S.entries.filter(function(e){return e.id===id})[0]}
 
 /* ---------- server storage (Supabase) ---------- */
-function fromRow(r){return{id:r.id,date:String(r.date),item:r.item||'',amount:r.amount||0,check:!!r.is_check,at:Number(r.at)||0,saved:!!r.saved,uploaded:!!r.uploaded}}
-function toRow(e){return{id:e.id,date:e.date,item:e.item||'',amount:e.amount||0,is_check:!!e.check,at:e.at||0,saved:!!e.saved,uploaded:!!e.uploaded}}
-function saveDb(e){if(!S.started)return;sb.from('receipts').upsert(toRow(e)).then(function(r){if(r.error)toast('서버 저장에 실패했어요. 인터넷을 확인해 주세요')})}
-function deleteDb(id){if(!S.started)return;sb.from('receipts').delete().eq('id',id).then(function(r){if(r.error)toast('서버에서 지우지 못했어요')})}
+function fromRow(r){return{id:r.id,date:String(r.date),item:r.item||'',amount:r.amount||0,check:!!r.is_check,at:Number(r.at)||0,saved:!!r.saved,uploaded:!!r.uploaded,
+  store:r.store_id,uid:r.user_id,by:r.created_by_name||'',deleted:!!r.deleted_at,deletedAt:r.deleted_at||null,synced:true}}
+function toRow(e){return{id:e.id,date:e.date,item:e.item||'',amount:e.amount||0,is_check:!!e.check,at:e.at||0,saved:!!e.saved,uploaded:!!e.uploaded,
+  store_id:e.store,deleted_at:e.deleted?(e.deletedAt||new Date().toISOString()):null}}
+function saveDb(e){if(!S.started||!e.store)return;
+  sb.from('receipts').upsert(toRow(e)).then(function(r){if(r.error){toast('서버 저장에 실패했어요. 인터넷을 확인해 주세요')}else{e.synced=true;persist()}})}
 function queueSave(e){persist();clearTimeout(qTimers[e.id]);qTimers[e.id]=setTimeout(function(){saveDb(e)},600)}
-async function loadFromServer(){
+async function loadReceipts(){
   try{
     var r=await sb.from('receipts').select('*');
     if(r.error)throw r.error;
     var remote=(r.data||[]).map(fromRow);
     var ids={};remote.forEach(function(e){ids[e.id]=1});
-    /* entries saved offline on this phone are kept and pushed up, not dropped */
-    var localOnly=S.entries.filter(function(e){return !ids[e.id]});
-    localOnly.forEach(saveDb);
+    /* entries made on this phone that never reached the server are kept and pushed up */
+    var localOnly=S.entries.filter(function(e){return !ids[e.id]&&!e.synced&&!e.deleted});
+    localOnly.forEach(function(e){if(!e.store||!storeById(e.store))e.store=targetStore();e.uid=S.uid;saveDb(e)});
     S.entries=remote.concat(localOnly).sort(function(a,b){return (a.at||0)-(b.at||0)});
     persist();
   }catch(err){toast('서버에서 불러오지 못해 이 기기 기록을 보여요')}
+}
+async function loadStores(){var r=await sb.from('stores').select('*').order('created_at');S.stores=r.data||[]}
+async function loadMembers(){
+  if(!isAdmin())return;
+  var a=await sb.from('members').select('*').order('created_at');
+  var b=await sb.from('member_stores').select('*');
+  S.members=a.data||[];S.mstores=b.data||[]}
+async function boot(session){
+  S.uid=session.user.id;S.myEmail=String(session.user.email||'').toLowerCase();
+  S.view='loading';render();
+  var r=await sb.from('members').select('*').eq('email',S.myEmail).maybeSingle();
+  if(r.error||!r.data){S.view='noaccess';render();return}
+  S.me=r.data;
+  await loadStores();
+  await loadMembers();
+  var saved=null;try{saved=localStorage.getItem(SKEY)}catch(e){}
+  if(saved==='all'&&S.stores.length>1)setStore('all');
+  else if(saved&&storeById(saved))setStore(saved);
+  else if(S.stores[0])setStore(S.stores[0].id);
+  else S.store=null;
+  await loadReceipts();
+  initNav();S.view='home';render();
 }
 
 /* ---------- views ---------- */
@@ -184,10 +256,15 @@ function barsHtml(m){
     out+='<span class="'+(v?'on':'')+(d===today?' today':'')+'" style="height:'+h+'%" title="'+d+'일 '+won(v)+'"></span>'}
   return '<div class="bars" role="img" aria-label="'+ml(m)+' 일별 지출">'+out+'</div>'}
 function itemBtn(e,withDate){
+  var sub=[];if(withDate)sub.push(md(e.date));if(S.store==='all')sub.push(esc(storeName(e.store)));if(e.by)sub.push('<span class="by">'+esc(e.by)+'</span>');
   return '<button class="item'+(isDup(e)?' dup':'')+'" data-act="open" data-id="'+esc(e.id)+'">'+
-    '<div style="min-width:0"><div class="nm">'+esc(e.item)+(isDup(e)?'<span class="chip warn">중복 의심</span>':'')+'</div>'+
-    (withDate?'<div class="dt">'+md(e.date)+'</div>':'')+'</div>'+
+    '<div style="min-width:0"><div class="nm">'+(S.store==='all'?dot(storeColor(e.store)):'')+esc(e.item)+(isDup(e)?'<span class="chip warn">중복 의심</span>':'')+'</div>'+
+    (sub.length?'<div class="dt">'+sub.join(' · ')+'</div>':'')+'</div>'+
     '<div class="amt num">'+won(e.amount)+'</div></button>'}
+function storeBtn(){
+  if(!S.stores.length)return '<button class="storebtn" data-act="stores">매장 없음 '+CARET+'</button>';
+  return '<button class="storebtn" data-act="stores" aria-label="매장 선택: '+esc(storeLabel())+'">'+
+    (S.store==='all'?dot('var(--ink)'):dot(storeColor(S.store)))+'<span class="sn">'+esc(storeLabel())+'</span>'+CARET+'</button>'}
 function vLogin(){
   return ''+
   '<div class="top"><div class="brand"><i>'+LOGO+'</i>영수증 정리</div></div>'+
@@ -196,88 +273,250 @@ function vLogin(){
   '<div class="form"><div class="field"><label for="em">이메일</label><input id="em" type="email" inputmode="email" autocomplete="email" value="'+esc(S.email)+'"></div></div>'+
   '<button class="btn primary" data-act="login"'+(S.sending?' disabled':'')+'>'+(S.sending?'보내는 중…':'로그인 링크 받기')+'</button>'+
   (S.sent?'<div class="empty">메일을 보냈어요. 이 폰에서 메일의 링크를 눌러 주세요.</div>':'')}
+function vLoading(){return '<div class="busy"><div class="spin" role="img" aria-label="불러오는 중"></div><h1>불러오는 중</h1></div>'}
+function vNoAccess(){
+  return ''+
+  '<div class="top"><div class="brand"><i>'+LOGO+'</i>영수증 정리</div></div>'+
+  '<div class="slip"><div class="lbl">등록되지 않은 계정</div><div style="font-size:15px;margin-top:8px">이 이메일은 아직 직원으로 등록되지 않았어요.</div>'+
+  '<div class="sub" style="font-size:14px;margin-top:8px">관리자에게 아래 이메일을 직원으로 추가해 달라고 요청해 주세요.</div>'+
+  '<div class="num" style="margin-top:10px;font-weight:600;word-break:break-all">'+esc(S.myEmail)+'</div></div>'+
+  '<button class="btn" data-act="logout">로그아웃</button>'}
 function vHome(){
   var m=todayStr().slice(0,7);
-  var recent=S.entries.slice().sort(function(a,b){return (b.at||0)-(a.at||0)}).slice(0,4);
+  var recent=scoped().slice().sort(function(a,b){return (b.at||0)-(a.at||0)}).slice(0,4);
+  var noStore=!S.stores.length;
   return ''+
-  '<div class="top"><div class="brand"><i>'+LOGO+'</i>영수증 정리</div><button class="pill" data-act="month" aria-label="월별 내역 보기">'+ml(m)+' <span aria-hidden="true">›</span></button></div>'+
+  '<div class="top">'+storeBtn()+'<button class="pill" data-act="month" aria-label="월별 내역 보기">'+ml(m)+' <span aria-hidden="true">›</span></button></div>'+
   (S.err?'<div class="err" role="alert">'+esc(S.err)+'</div>':'')+
+  (noStore?'<div class="err">'+(isAdmin()?'매장을 먼저 추가해 주세요. 왼쪽 위 매장 버튼을 누르세요.':'배정된 매장이 없어요. 관리자에게 요청해 주세요.')+'</div>':'')+
   slip(m,'이번 달 지출')+
-  '<button class="btn primary" data-act="cam">'+CAM+' 영수증 찍기</button>'+
-  '<button class="btn" data-act="alb">'+IMG+' 앨범에서 고르기</button>'+
+  '<button class="btn primary" data-act="cam"'+(noStore?' disabled':'')+'>'+CAM+' 영수증 찍기</button>'+
+  '<button class="btn" data-act="alb"'+(noStore?' disabled':'')+'>'+IMG+' 앨범에서 고르기</button>'+
+  (S.store==='all'&&!noStore?'<div class="fname">전체 보기 중에는 <b>'+esc(storeName(targetStore()))+'</b>(으)로 저장돼요</div>':'')+
   '<div class="sec"><h2>최근 정리</h2><button class="link" data-act="month">월별 내역</button></div>'+
   (recent.length?'<div class="list">'+recent.map(function(e){return itemBtn(e,true)}).join('')+'</div>':'<div class="empty">아직 정리한 영수증이 없어요.<br>영수증을 찍으면 날짜와 금액을 자동으로 읽어요.</div>')+
-  '<button class="btn quiet" data-act="logout">로그아웃</button>';
+  '<div class="footrow"><span class="sub">'+(function(){var n=S.me?S.me.name:'';var r=isAdmin()?'관리자':'직원';return esc(n===r?n:n+' · '+r)})()+'</span>'+
+  (isAdmin()?'<button class="link" data-act="staff">직원 관리</button>':'')+
+  '<button class="link muted" data-act="logout">로그아웃</button></div>';
 }
 function vBusy(){return '<div class="busy"><div class="spin" role="img" aria-label="읽는 중"></div><h1>영수증 읽는 중</h1><div class="sub num">'+(S.prog&&S.prog.n>1?S.prog.i+' / '+S.prog.n+'장':'몇 초 걸려요')+'</div></div>'}
-function curE(){return S.entries.filter(function(e){return e.id===S.cur})[0]}
+function curE(){return S.entries.filter(function(e){return e.id===S.cur&&!e.deleted})[0]}
 function dupHtml(e){return isDup(e)?'<span class="chip warn">중복 의심</span>':'<span class="chip ok">중복 없음</span>'}
 function vResult(){
-  var e=curE();if(!e)return vHome();var hasFile=files.has(e.id);
+  var e=curE();if(!e)return vHome();var hasFile=files.has(e.id);var ed=canEdit(e);var dis=ed?'':' disabled';
+  var storeField=S.stores.length>1?
+    '<div class="field"><label for="f-store">매장</label><select id="f-store"'+dis+'>'+S.stores.map(function(s){return '<option value="'+esc(s.id)+'"'+(s.id===e.store?' selected':'')+'>'+esc(s.name)+'</option>'}).join('')+'</select></div>':
+    '<div class="field"><label>매장</label><div style="font-weight:600">'+esc(storeName(e.store))+'</div></div>';
   return ''+
-  '<div class="top"><button class="iconbtn" data-act="home" aria-label="홈으로">'+BACK+'</button><div class="title">처리 결과</div><div style="width:44px"></div></div>'+
-  '<div class="done"><div class="ring">'+CHECK+'</div><h1>정리 완료</h1><div class="sub">틀린 곳은 눌러서 고칠 수 있어요</div></div>'+
+  '<div class="top"><button class="iconbtn" data-act="home" aria-label="뒤로">'+BACK+'</button><div class="title">처리 결과</div><div style="width:44px"></div></div>'+
+  '<div class="done"><div class="ring">'+CHECK+'</div><h1>정리 완료</h1><div class="sub">'+(ed?'틀린 곳은 눌러서 고칠 수 있어요':'다른 사람이 올린 영수증이라 고칠 수 없어요')+'</div></div>'+
   (e.check?'<div class="err" role="alert">날짜를 읽지 못해 오늘 날짜를 넣었어요. 확인해 주세요.</div>':'')+
   '<div class="form">'+
-    '<div class="field"><label for="f-date">날짜</label><input id="f-date" type="date" value="'+esc(e.date)+'"></div>'+
-    '<div class="field"><label for="f-item">품목</label><input id="f-item" type="text" value="'+esc(e.item)+'"></div>'+
-    '<div class="field"><label for="f-amt">금액(원)</label><input id="f-amt" type="number" inputmode="numeric" value="'+esc(e.amount)+'"></div>'+
-    '<div class="field"><label>중복 확인</label><div id="dupbox">'+dupHtml(e)+'</div></div></div>'+
+    storeField+
+    '<div class="field"><label for="f-date">날짜</label><input id="f-date" type="date" value="'+esc(e.date)+'"'+dis+'></div>'+
+    '<div class="field"><label for="f-item">품목</label><input id="f-item" type="text" value="'+esc(e.item)+'"'+dis+'></div>'+
+    '<div class="field"><label for="f-amt">금액(원)</label><input id="f-amt" type="number" inputmode="numeric" value="'+esc(e.amount)+'"'+dis+'></div>'+
+    '<div class="field"><label>중복 확인</label><div id="dupbox">'+dupHtml(e)+'</div></div>'+
+    (e.by?'<div class="field"><label>등록한 직원</label><div style="font-weight:600">'+esc(e.by)+'</div></div>':'')+
+  '</div>'+
   '<div class="fname">파일명 · <span id="fname" class="num">'+esc(fname(e))+'</span></div>'+
   '<div style="display:flex;flex-direction:column;gap:10px;margin-top:auto">'+
     '<button class="btn primary" data-act="savephoto"'+(hasFile?'':' disabled')+'>'+(e.saved?'사진 다시 저장':'사진을 폰에 저장')+'</button>'+
     (hasFile?'':'<div class="fname">사진은 올린 직후에만 저장할 수 있어요</div>')+
     '<div class="pair"><button class="btn" data-act="cam">한 장 더</button><button class="btn" data-act="month">월별 내역</button></div>'+
-    '<button class="btn quiet" data-act="del">이 영수증 삭제</button></div>'}
+    (ed?'<button class="btn quiet" data-act="del">이 영수증 삭제</button>':'')+'</div>'}
 function vMonth(){
-  var m=S.month;var days=byDay(m).slice().reverse();
+  var m=S.month;var days=byDay(m).slice().reverse();var n=monthEntries(m).length;
   var body=days.map(function(day){
     if(!day.list.length)return '<div class="zero"><span>'+md(day.date)+'</span><span class="num">₩0</span></div>';
     return '<div class="dayhead"><span>'+md(day.date)+'</span>'+(day.list.length>1?'<span>일 합계 <span class="num">'+won(dayTotal(day.list))+'</span></span>':'')+'</div><div class="list">'+day.list.map(function(e){return itemBtn(e,false)}).join('')+'</div>'}).join('');
   return ''+
-  '<div class="top"><button class="iconbtn" data-act="home" aria-label="홈으로">'+BACK+'</button>'+
+  '<div class="top"><button class="iconbtn" data-act="home" aria-label="뒤로">'+BACK+'</button>'+
     '<div class="monthnav"><button class="iconbtn sm" data-act="prev" aria-label="이전 달">'+BACK+'</button><div class="title">'+ml(m)+'</div><button class="iconbtn sm" data-act="next" aria-label="다음 달">'+NEXT+'</button></div><div style="width:44px"></div></div>'+
+  '<div>'+storeBtn()+'</div>'+
   slip(m,'월 합계')+
   '<div class="pair"><button class="btn sm" data-act="copy">정산표용 복사</button><button class="btn sm" data-act="csv">CSV 저장</button></div>'+
   (S.copyText?'<div class="copybox"><div style="font-size:14px;font-weight:600">아래 내용을 길게 눌러 복사하세요</div><textarea readonly id="ct">'+esc(S.copyText)+'</textarea><button class="btn sm" data-act="closecopy">닫기</button></div>':'')+
   '<div style="display:flex;flex-direction:column">'+(body||'<div class="empty">이 달에는 기록이 없어요.</div>')+'</div>'+
-  '<button class="btn primary" data-act="cam" style="margin-top:8px">'+CAM+' 영수증 찍기</button>'}
+  '<button class="btn primary" data-act="cam" style="margin-top:8px"'+(S.stores.length?'':' disabled')+'>'+CAM+' 영수증 찍기</button>'+
+  (isAdmin()&&n?'<button class="btn quiet danger" data-act="delmonth" style="margin-top:18px">이 달 기록 모두 삭제</button>':'')}
 function vBatch(){
   var b=S.batch||[];var ok=b.filter(function(x){return x.ok}).length;
-  var okList=b.filter(function(x){return x.ok}).map(function(x){var e=S.entries.filter(function(q){return q.id===x.id})[0];return e?itemBtn(e,true):''}).join('');
+  var okList=b.filter(function(x){return x.ok}).map(function(x){var e=byId(x.id);return e&&!e.deleted?itemBtn(e,true):''}).join('');
   var fail=b.filter(function(x){return !x.ok}).map(function(x){return '<div class="failcard"><div style="font-size:14px;font-weight:600">'+esc(x.name)+'</div><div class="sub" style="font-size:13px;margin-top:4px">'+esc(x.msg)+'</div></div>'}).join('');
   return ''+
-  '<div class="top"><button class="iconbtn" data-act="home" aria-label="홈으로">'+BACK+'</button><div class="title">정리 결과</div><div style="width:44px"></div></div>'+
+  '<div class="top"><button class="iconbtn" data-act="home" aria-label="뒤로">'+BACK+'</button><div class="title">정리 결과</div><div style="width:44px"></div></div>'+
   '<div class="slip" style="text-align:center"><div class="big num">'+ok+' / '+b.length+'장</div><div class="sub" style="font-size:14px;margin-top:4px">항목을 누르면 날짜·금액을 고칠 수 있어요</div></div>'+
   (okList?'<div class="list">'+okList+'</div>':'')+fail+
   '<button class="btn primary" data-act="alb" style="margin-top:8px">'+IMG+' 영수증 더 올리기</button>';
 }
+function vStaff(){
+  if(!isAdmin())return vHome();
+  var chk=function(name,on){return S.stores.map(function(s){return '<label class="ck"><input type="checkbox" '+name+' value="'+esc(s.id)+'"'+(on(s.id)?' checked':'')+'>'+dot(s.color)+esc(s.name)+'</label>'}).join('')};
+  var cards=S.members.map(function(m){
+    var mine=S.mstores.filter(function(x){return x.member_id===m.id}).map(function(x){return x.store_id});
+    var admin=m.role==='admin';
+    return '<div class="mcard"><div class="mhead"><div style="min-width:0"><div style="font-weight:700">'+esc(m.name)+(admin?' <span class="chip ok">관리자</span>':'')+'</div>'+
+      '<div class="sub" style="font-size:13px;word-break:break-all">'+esc(m.email)+'</div></div>'+
+      '<button class="link" data-act="memrename" data-id="'+esc(m.id)+'">이름 변경</button></div>'+
+      (admin?'<div class="sub" style="font-size:13px">관리자는 모든 매장을 볼 수 있어요</div>':
+        '<div class="cks">'+S.stores.map(function(s){return '<label class="ck"><input type="checkbox" data-act="togms" data-m="'+esc(m.id)+'" value="'+esc(s.id)+'"'+(mine.indexOf(s.id)>=0?' checked':'')+'>'+dot(s.color)+esc(s.name)+'</label>'}).join('')+'</div>'+
+        '<button class="link danger" data-act="memdel" data-id="'+esc(m.id)+'">직원 삭제</button>')+
+      '</div>'}).join('');
+  return ''+
+  '<div class="top"><button class="iconbtn" data-act="home" aria-label="뒤로">'+BACK+'</button><div class="title">직원 관리</div><div style="width:44px"></div></div>'+
+  '<div class="form">'+
+    '<div class="field"><label for="m-name">직원 이름</label><input id="m-name" type="text" maxlength="30" placeholder="예: 홍길동"></div>'+
+    '<div class="field"><label for="m-email">직원 이메일</label><input id="m-email" type="email" inputmode="email" placeholder="name@example.com"></div>'+
+    '<div class="field"><label>볼 수 있는 매장</label><div class="cks">'+chk('class="m-st"',function(){return S.store&&S.store!=='all'?arguments[0]===S.store:false})+'</div></div>'+
+  '</div>'+
+  '<button class="btn primary" data-act="addmember"'+(S.busyMsg?' disabled':'')+'>직원 추가</button>'+
+  '<div class="fname">추가한 직원은 그 이메일로 로그인 링크를 받아 들어와요. 체크한 매장만 볼 수 있어요.</div>'+
+  '<div class="sec"><h2>등록된 사람</h2></div>'+
+  '<div style="display:flex;flex-direction:column;gap:10px">'+cards+'</div>'}
+function dlgHtml(){
+  var d=S.dlg;if(!d)return '';
+  var inner='';
+  if(d.type==='exit'){
+    inner='<h2>사용을 종료하시겠습니까?</h2><div class="pair"><button class="btn sm" data-act="exit-no">아니요</button><button class="btn sm primary" data-act="exit-yes">예</button></div>';
+  }else if(d.type==='stores'){
+    var rows=S.stores.map(function(s){return '<div class="srow"><button class="sopt'+(S.store===s.id?' on':'')+'" data-act="pickstore" data-id="'+esc(s.id)+'">'+dot(s.color)+'<span>'+esc(s.name)+'</span>'+(S.store===s.id?'<b class="tick">✓</b>':'')+'</button>'+
+      (isAdmin()?'<button class="link" data-act="editstore" data-id="'+esc(s.id)+'">수정</button>':'')+'</div>'}).join('');
+    inner='<h2>매장 선택</h2><div class="slist">'+
+      (S.stores.length>1?'<div class="srow"><button class="sopt'+(S.store==='all'?' on':'')+'" data-act="pickstore" data-id="all">'+dot('var(--ink)')+'<span>전체 매장</span>'+(S.store==='all'?'<b class="tick">✓</b>':'')+'</button></div>':'')+
+      rows+(S.stores.length?'':'<div class="sub">매장이 없어요</div>')+'</div>'+
+      (isAdmin()?'<button class="btn sm" data-act="newstore">+ 매장 추가</button>':'')+
+      '<button class="btn sm quiet" data-act="dlgclose">닫기</button>';
+  }else if(d.type==='storeEdit'){
+    var s=d.id?storeById(d.id):null;
+    inner='<h2>'+(s?'매장 수정':'매장 추가')+'</h2>'+
+      '<input class="dlginput" id="d-sname" type="text" maxlength="40" placeholder="예: 레벨업천안청당점" value="'+esc(s?s.name:'')+'">'+
+      (d.msg?'<div class="err">'+esc(d.msg)+'</div>':'')+
+      '<div class="pair"><button class="btn sm" data-act="dlgclose">취소</button><button class="btn sm primary" data-act="savestore">'+(s?'저장':'추가')+'</button></div>'+
+      (s?'<button class="btn sm quiet danger" data-act="delstore">이 매장 삭제</button>':'');
+  }else if(d.type==='storeDel'){
+    inner='<h2>매장을 삭제하시겠습니까?</h2><div class="sub">'+esc(storeName(d.id))+'</div>'+
+      '<div class="pair"><button class="btn sm" data-act="dlgclose">아니요</button><button class="btn sm primary" data-act="delstore-yes">예</button></div>';
+  }else if(d.type==='monthDel'){
+    inner='<h2>삭제하시겠습니까?</h2><div class="sub" style="font-size:14px">'+esc(ml(S.month))+' · '+esc(storeLabel())+'<br><span class="num">'+d.n+'건 · '+won(d.total)+'</span></div>'+
+      '<div class="pair"><button class="btn sm" data-act="dlgclose">아니요</button><button class="btn sm primary" data-act="delmonth-yes">예</button></div>';
+  }else if(d.type==='memRename'){
+    var m=S.members.filter(function(x){return x.id===d.id})[0]||{};
+    inner='<h2>이름 변경</h2><input class="dlginput" id="d-mname" type="text" maxlength="30" value="'+esc(m.name||'')+'">'+
+      '<div class="pair"><button class="btn sm" data-act="dlgclose">취소</button><button class="btn sm primary" data-act="memrename-yes">저장</button></div>';
+  }else if(d.type==='memDel'){
+    var mm=S.members.filter(function(x){return x.id===d.id})[0]||{};
+    inner='<h2>직원을 삭제하시겠습니까?</h2><div class="sub">'+esc(mm.name||'')+' · '+esc(mm.email||'')+'<br>이미 올린 영수증은 그대로 남아요</div>'+
+      '<div class="pair"><button class="btn sm" data-act="dlgclose">아니요</button><button class="btn sm primary" data-act="memdel-yes">예</button></div>';
+  }
+  return '<div class="modal" data-act="dlgclose" role="dialog" aria-modal="true"><div class="box" data-act="noop">'+inner+'</div></div>'}
+function undoHtml(){
+  if(!S.undo)return '';
+  return '<div id="undobar" role="status"><span>'+esc(S.undo.msg)+'</span><button data-act="undo">되돌리기</button></div>'}
 function render(){
-  var h=S.view==='login'?vLogin():S.view==='busy'?vBusy():S.view==='result'?vResult():S.view==='batch'?vBatch():S.view==='month'?vMonth():vHome();
-  if(S.exitAsk)h+='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="exq"><div class="box"><h2 id="exq">사용을 종료하시겠습니까?</h2>'+
-    '<div class="pair"><button class="btn sm" data-act="exit-no">아니요</button><button class="btn sm primary" data-act="exit-yes">예</button></div></div></div>';
+  var v=S.view;
+  var h=v==='login'?vLogin():v==='loading'?vLoading():v==='noaccess'?vNoAccess():v==='busy'?vBusy():v==='result'?vResult():v==='batch'?vBatch():v==='month'?vMonth():v==='staff'?vStaff():vHome();
+  h+=dlgHtml()+undoHtml();
   $('#app').innerHTML=h;
+  var fi=$('.dlginput');if(fi&&S.dlg&&!S.dlg.focused){S.dlg.focused=true;fi.focus()}
 }
+function openDlg(d){S.dlg=d;render()}
+function closeDlg(){S.dlg=null;render()}
+
 /* ---------- navigation (back button support) ---------- */
 function snap(){return{v:S.view,cur:S.cur,month:S.month}}
-function go(view){S.exiting=false;S.exitAsk=false;S.view=view;history.pushState(snap(),'');render();window.scrollTo(0,0)}
+function go(view){S.exiting=false;S.dlg=null;S.view=view;history.pushState(snap(),'');render();window.scrollTo(0,0)}
 function goBack(){if(history.state&&history.state.v&&history.state.v!=='home'&&history.state.v!=='root')history.back();else{S.view='home';render()}}
 function initNav(){history.replaceState({v:'root'},'',location.pathname);history.pushState({v:'home'},'',location.pathname)}
 window.addEventListener('popstate',function(ev){
-  if(!S.started)return;
+  if(!S.started||!S.me)return;
   var st=ev.state||{v:'root'};
   if(S.exiting)return;
-  if(st.v==='root'){S.view='home';S.exitAsk=true;render();return}
-  S.exitAsk=false;S.view=st.v;if(st.cur)S.cur=st.cur;if(st.month)S.month=st.month;S.copyText='';S.err='';render()});
+  if(st.v==='root'){S.view='home';S.dlg={type:'exit'};render();return}
+  S.dlg=null;S.view=st.v;if(st.cur)S.cur=st.cur;if(st.month)S.month=st.month;S.copyText='';S.err='';render()});
 function exitApp(){
-  S.exitAsk=false;S.exiting=true;render();
+  S.dlg=null;S.exiting=true;render();
   try{window.close()}catch(e){}
   setTimeout(function(){if(document.visibilityState==='visible')toast('뒤로가기를 한 번 더 누르면 종료돼요')},300)}
 
+/* ---------- delete with undo ---------- */
+function softDelete(ids,msg){
+  var now=new Date().toISOString();
+  ids.forEach(function(id){var e=byId(id);if(!e)return;clearTimeout(qTimers[id]);e.deleted=true;e.deletedAt=now});
+  persist();
+  sb.from('receipts').update({deleted_at:now}).in('id',ids).then(function(r){if(r.error)toast('서버에서 지우지 못했어요')});
+  clearTimeout(softDelete._t);S.undo={ids:ids,msg:msg};
+  softDelete._t=setTimeout(function(){S.undo=null;render()},7000);
+}
+function undoDelete(){
+  var u=S.undo;if(!u)return;clearTimeout(softDelete._t);S.undo=null;
+  u.ids.forEach(function(id){var e=byId(id);if(e){e.deleted=false;e.deletedAt=null}});persist();
+  sb.from('receipts').update({deleted_at:null}).in('id',u.ids).then(function(r){if(r.error)toast('되돌리지 못했어요. 인터넷을 확인해 주세요');else toast('되돌렸어요')});
+  render();
+}
+
+/* ---------- stores & members (admin) ---------- */
+async function saveStore(){
+  var d=S.dlg;var name=(($('#d-sname')||{}).value||'').trim();
+  if(!name){d.msg='매장 이름을 입력해 주세요';render();return}
+  if(S.stores.some(function(s){return s.name===name&&s.id!==d.id})){d.msg='같은 이름의 매장이 있어요';render();return}
+  if(d.id){
+    var r=await sb.from('stores').update({name:name}).eq('id',d.id);
+    if(r.error){d.msg='저장하지 못했어요';render();return}
+    storeById(d.id).name=name;S.dlg={type:'stores'};render();toast('매장 이름을 바꿨어요');
+  }else{
+    var used=S.stores.map(function(s){return s.color});
+    var color=PALETTE.filter(function(c){return used.indexOf(c)<0})[0]||PALETTE[S.stores.length%PALETTE.length];
+    var r2=await sb.from('stores').insert({name:name,color:color}).select().single();
+    if(r2.error){d.msg='추가하지 못했어요';render();return}
+    S.stores.push(r2.data);setStore(r2.data.id);S.dlg=null;render();toast(name+' 매장을 추가했어요');
+  }
+}
+async function deleteStore(id){
+  if(live().some(function(e){return e.store===id})){toast('영수증이 남아 있는 매장은 삭제할 수 없어요');S.dlg={type:'stores'};render();return}
+  await sb.from('receipts').delete().eq('store_id',id);
+  var r=await sb.from('stores').delete().eq('id',id);
+  if(r.error){toast('삭제하지 못했어요');S.dlg={type:'stores'};render();return}
+  S.stores=S.stores.filter(function(s){return s.id!==id});
+  S.entries=S.entries.filter(function(e){return e.store!==id});persist();
+  if(S.store===id)setStore(S.stores[0]?S.stores[0].id:null);
+  if(S.store==='all'&&S.stores.length<2&&S.stores[0])setStore(S.stores[0].id);
+  S.dlg={type:'stores'};render();toast('매장을 삭제했어요');
+}
+async function addMember(){
+  var name=(($('#m-name')||{}).value||'').trim();
+  var email=(($('#m-email')||{}).value||'').trim().toLowerCase();
+  var sids=$$('.m-st:checked').map(function(x){return x.value});
+  if(!name){toast('직원 이름을 입력해 주세요');return}
+  if(!/^\S+@\S+\.\S+$/.test(email)){toast('이메일을 정확히 입력해 주세요');return}
+  if(!sids.length){toast('볼 수 있는 매장을 하나 이상 체크해 주세요');return}
+  S.busyMsg='1';render();
+  var r=await sb.from('members').insert({name:name,email:email,role:'staff'}).select().single();
+  if(r.error){S.busyMsg='';render();toast(/duplicate|unique/i.test(r.error.message)?'이미 등록된 이메일이에요':'추가하지 못했어요');return}
+  var r2=await sb.from('member_stores').insert(sids.map(function(s){return{member_id:r.data.id,store_id:s}}));
+  if(r2.error)toast('매장 배정 중 문제가 생겼어요. 아래에서 다시 체크해 주세요');
+  await loadMembers();S.busyMsg='';render();toast(name+' 님을 추가했어요');
+}
+async function toggleMemberStore(mid,sid,on){
+  var r=on?await sb.from('member_stores').insert({member_id:mid,store_id:sid}):await sb.from('member_stores').delete().eq('member_id',mid).eq('store_id',sid);
+  if(r.error){toast('바꾸지 못했어요')}
+  await loadMembers();render();
+}
+async function renameMember(){
+  var d=S.dlg;var name=(($('#d-mname')||{}).value||'').trim();if(!name){toast('이름을 입력해 주세요');return}
+  var r=await sb.from('members').update({name:name}).eq('id',d.id);
+  if(r.error){toast('바꾸지 못했어요');return}
+  var m=S.members.filter(function(x){return x.id===d.id})[0];if(m)m.name=name;
+  if(S.me&&S.me.id===d.id)S.me.name=name;
+  S.dlg=null;render();toast('이름을 바꿨어요');
+}
+async function deleteMember(id){
+  var r=await sb.from('members').delete().eq('id',id);
+  if(r.error){toast('삭제하지 못했어요');return}
+  await loadMembers();S.dlg=null;render();toast('직원을 삭제했어요');
+}
+
 /* ---------- AI reading (server route /api/read) ---------- */
-var PROMPT='이 영수증 사진에서 정보를 읽어 JSON 객체 하나만 출력하세요. 설명이나 다른 글자는 쓰지 마세요.\n'+
-'형식: {"date":"YYYY-MM-DD","item":"품목 요약(한글 12자 이내)","amount":실제 결제 합계 금액(정수, 원),"store":"상호"}\n'+
-'날짜를 읽을 수 없으면 date는 null. 품목이 여러 개면 대표 품목 한두 개로 요약. 영수증이 아니면 {"error":"not_receipt"}만 출력.';
 function shrink(file){return new Promise(function(res){
   var url=URL.createObjectURL(file);var img=new Image();
   img.onload=function(){try{var max=1600,w=img.naturalWidth,h=img.naturalHeight,k=Math.min(1,max/Math.max(w,h));
@@ -316,11 +555,12 @@ function errMsg(e){var c=e&&e.code;
   if(c==='not_receipt')return '영수증으로 보이지 않아요. 영수증이 화면에 꽉 차게 다시 찍어 주세요.';
   return '읽지 못했어요. ['+(c||'unknown')+(e&&e.message?' '+e.message:'')+']'}
 
-async function readOne(file){
+async function readOne(file,store){
     var small=await shrink(file);var o=await analyze(small);
     var amt=Math.round(Number(String(o.amount).replace(/[^\d.-]/g,'')))||0;
     var okDate=/^\d{4}-\d{2}-\d{2}$/.test(o.date||'');
-    var e={id:'r'+Date.now(),date:okDate?o.date:todayStr(),item:String(o.item||o.store||'영수증').slice(0,20),amount:amt,check:!okDate,at:Date.now()};
+    var e={id:newId(),date:okDate?o.date:todayStr(),item:String(o.item||o.store||'영수증').slice(0,20),amount:amt,check:!okDate,at:Date.now(),
+      store:store,uid:S.uid,by:(S.me&&S.me.role==='staff')?S.me.name:''};
     var t=(file.type||'').toLowerCase();var ex=t==='image/png'?'png':t==='image/webp'?'webp':'jpg';
     var keep=(t==='image/jpeg'||t==='image/png'||t==='image/webp')?file:small;
     files.set(e.id,{blob:keep,ext:ex});
@@ -328,10 +568,11 @@ async function readOne(file){
 }
 async function handleFiles(list){
   var arr=list||[];if(!arr.length)return;
+  var store=targetStore();if(!store){toast('매장을 먼저 추가해 주세요');return}
   S.err='';S.batch=[];var n=arr.length;
   for(var i=0;i<n;i++){
     S.view='busy';S.prog={i:i+1,n:n};render();
-    try{var e=await readOne(arr[i]);S.batch.push({ok:true,id:e.id})}
+    try{var e=await readOne(arr[i],store);S.batch.push({ok:true,id:e.id})}
     catch(err){S.batch.push({ok:false,name:arr[i].name||'사진',msg:errMsg(err)})}
   }
   S.prog=null;
@@ -346,7 +587,7 @@ function downloadBlob(blob,name){
   setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000)}
 function savePhoto(){
   var e=curE();var f=e&&files.get(e.id);if(!f){toast('사진은 올린 직후에만 저장할 수 있어요');return}
-  downloadBlob(f.blob,fname(e));e.saved=true;persist();saveDb(e);render();toast('저장했어요')}
+  downloadBlob(f.blob,fname(e));e.saved=true;persist();if(canEdit(e))saveDb(e);render();toast('저장했어요')}
 function tsv(){return rowsFor(S.month).map(function(r){return r.join('\t')}).join('\n')}
 async function copyIt(){var t=tsv();if(!t){toast('복사할 내용이 없어요');return}
   try{await navigator.clipboard.writeText(t);toast('복사했어요 · 정산표에 붙여넣으세요')}
@@ -354,7 +595,7 @@ async function copyIt(){var t=tsv();if(!t){toast('복사할 내용이 없어요'
 function csvIt(){var rows=rowsFor(S.month);if(!rows.length){toast('저장할 내용이 없어요');return}
   var q=function(v){v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   var txt='﻿날짜,금액,품목\r\n'+rows.map(function(r){return r.map(q).join(',')}).join('\r\n');
-  downloadBlob(new Blob([txt],{type:'text/csv;charset=utf-8'}),'영수증_'+S.month+'.csv');toast('저장했어요')}
+  downloadBlob(new Blob([txt],{type:'text/csv;charset=utf-8'}),'영수증_'+cleanItem(storeLabel())+'_'+S.month+'.csv');toast('저장했어요')}
 
 /* ---------- auth ---------- */
 async function sendLogin(){
@@ -366,16 +607,14 @@ async function sendLogin(){
   if(r.error){S.loginMsg='메일을 보내지 못했어요: '+r.error.message}else{S.sent=true}
   render();
 }
-async function logout(){
-  await sb.auth.signOut();
-}
+async function logout(){await sb.auth.signOut()}
 sb.auth.onAuthStateChange(function(ev,session){
   if(session){
     if(S.started)return;
-    S.started=true;S.view='home';initNav();render();
-    loadFromServer().then(render);
+    S.started=true;
+    setTimeout(function(){boot(session)},0);
   }else{
-    S.started=false;S.entries=[];S.view='login';S.sent=false;
+    S.started=false;S.entries=[];S.me=null;S.stores=[];S.members=[];S.mstores=[];S.dlg=null;S.undo=null;S.view='login';S.sent=false;
     try{localStorage.removeItem(KEY)}catch(e){}
     render();
   }
@@ -383,20 +622,36 @@ sb.auth.onAuthStateChange(function(ev,session){
 
 /* ---------- events ---------- */
 document.addEventListener('click',function(ev){
-  var b=ev.target.closest('[data-act]');if(!b)return;var a=b.getAttribute('data-act');
+  var b=ev.target.closest('[data-act]');if(!b)return;var a=b.getAttribute('data-act');var id=b.getAttribute('data-id');
+  if(a==='noop')return;
+  if(a==='dlgclose'){if(b.classList.contains('modal')&&ev.target!==b)return;closeDlg();return}
   if(a==='cam')$('#f-cam').click();
   else if(a==='alb')$('#f-alb').click();
   else if(a==='login')sendLogin();
   else if(a==='logout')logout();
   else if(a==='home'){S.err='';goBack()}
-  else if(a==='exit-no'){S.exitAsk=false;history.pushState({v:'home'},'');render()}
+  else if(a==='exit-no'){S.dlg=null;history.pushState({v:'home'},'');render()}
   else if(a==='exit-yes')exitApp();
   else if(a==='month'){S.copyText='';S.month=S.view==='home'?todayStr().slice(0,7):S.month;go('month')}
-  else if(a==='open'){S.cur=b.getAttribute('data-id');go('result')}
-  else if(a==='del'){
-    var did=S.cur;clearTimeout(qTimers[did]);
-    S.entries=S.entries.filter(function(e){return e.id!==did});files.delete(did);persist();deleteDb(did);
-    toast('삭제했어요');goBack()}
+  else if(a==='staff'){loadMembers().then(render);go('staff')}
+  else if(a==='open'){S.cur=id;go('result')}
+  else if(a==='del'){var e=curE();if(!e)return;files.delete(e.id);softDelete([e.id],'영수증 1건을 삭제했어요');goBack()}
+  else if(a==='delmonth'){var list=monthEntries(S.month);openDlg({type:'monthDel',n:list.length,total:dayTotal(list)})}
+  else if(a==='delmonth-yes'){var ids=monthEntries(S.month).map(function(e){return e.id});S.dlg=null;softDelete(ids,ids.length+'건을 삭제했어요');render()}
+  else if(a==='undo')undoDelete();
+  else if(a==='stores')openDlg({type:'stores'});
+  else if(a==='pickstore'){setStore(id);S.dlg=null;render();toast(storeLabel()+' 선택')}
+  else if(a==='newstore')openDlg({type:'storeEdit',id:null});
+  else if(a==='editstore')openDlg({type:'storeEdit',id:id});
+  else if(a==='savestore')saveStore();
+  else if(a==='delstore')openDlg({type:'storeDel',id:S.dlg.id});
+  else if(a==='delstore-yes')deleteStore(S.dlg.id);
+  else if(a==='addmember')addMember();
+  else if(a==='togms')toggleMemberStore(b.getAttribute('data-m'),b.value,b.checked);
+  else if(a==='memrename')openDlg({type:'memRename',id:id});
+  else if(a==='memrename-yes')renameMember();
+  else if(a==='memdel')openDlg({type:'memDel',id:id});
+  else if(a==='memdel-yes')deleteMember(S.dlg.id);
   else if(a==='savephoto')savePhoto();
   else if(a==='copy')copyIt();
   else if(a==='csv')csvIt();
@@ -404,17 +659,24 @@ document.addEventListener('click',function(ev){
   else if(a==='prev'||a==='next'){var p=S.month.split('-').map(Number);var d=new Date(p[0],p[1]-1+(a==='next'?1:-1),1);S.month=d.getFullYear()+'-'+pad(d.getMonth()+1);S.copyText='';history.replaceState(snap(),'');render()}
 });
 document.addEventListener('input',function(ev){
-  var t=ev.target;var e=curE();if(!e)return;
+  var t=ev.target;var e=curE();if(!e||!canEdit(e))return;
   if(t.id==='f-date'&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)){e.date=t.value;e.check=false}
   else if(t.id==='f-item')e.item=t.value.slice(0,20);
   else if(t.id==='f-amt')e.amount=Math.max(0,Math.round(Number(t.value))||0);
+  else if(t.id==='f-store'){e.store=t.value}
   else return;
   queueSave(e);var fn=$('#fname');if(fn)fn.textContent=fname(e);var db=$('#dupbox');if(db)db.innerHTML=dupHtml(e)});
-document.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&ev.target.id==='em'){sendLogin()}});
+document.addEventListener('keydown',function(ev){
+  if(ev.key!=='Enter')return;
+  if(ev.target.id==='em')sendLogin();
+  else if(ev.target.id==='d-sname')saveStore();
+  else if(ev.target.id==='d-mname')renameMember();
+});
 ['#f-cam','#f-alb'].forEach(function(id){$(id).addEventListener('change',function(ev){var list=Array.prototype.slice.call(ev.target.files||[]);ev.target.value='';handleFiles(list)})});
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){})}
-render();
+S.view='loading';render();
+setTimeout(function(){if(!S.started&&S.view==='loading'){S.view='login';render()}},4000);
 })();
 </script>
 </body></html>
