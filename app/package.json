@@ -1,0 +1,11 @@
+{
+  "name": "oneul-eolma-app",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": { "sync": "cap sync android" },
+  "dependencies": {
+    "@capacitor/android": "^7.6.11",
+    "@capacitor/core": "^7.6.11"
+  },
+  "devDependencies": { "@capacitor/cli": "^7.6.11" }
+}

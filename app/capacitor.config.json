@@ -1,0 +1,14 @@
+{
+  "appId": "com.levelup.receipts.app",
+  "appName": "오늘얼마(가계부)",
+  "webDir": "www",
+  "server": {
+    "url": "https://recipe-app-coral-three.vercel.app",
+    "androidScheme": "https",
+    "allowNavigation": ["recipe-app-coral-three.vercel.app"]
+  },
+  "android": {
+    "adjustMarginsForEdgeToEdge": "force",
+    "backgroundColor": "#FFF4D6"
+  }
+}

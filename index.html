@@ -598,7 +598,7 @@ function vBackup(){
   return ''+
   '<div class="top"><button class="iconbtn" data-act="home" aria-label="뒤로">'+BACK+'</button><div class="title">백업</div><div style="width:44px"></div></div>'+
   '<div class="note">기록과 영수증 사진은 서버에 자동으로 보관돼요. 백업은 혹시 모를 때를 위해 파일로 따로 보관하는 기능이에요.</div>'+
-  '<label class="toggle"><input type="checkbox" data-act="togautosave"'+(autoSaveOn()?' checked':'')+'><span><b>저장할 때 사진을 폰에도 저장</b><br><span class="sub" style="font-size:13px">이 폰의 다운로드 폴더에 날짜_품목_금액 이름으로 저장돼요</span></span></label>'+
+  '<label class="toggle"><input type="checkbox" data-act="togautosave"'+(autoSaveOn()?' checked':'')+'><span><b>저장할 때 사진을 폰에도 저장</b><br><span class="sub" style="font-size:13px">이 폰의 '+(NATIVE?'사진/오늘얼마/월별 폴더':'다운로드 폴더')+'에 날짜_품목_금액 이름으로 저장돼요</span></span></label>'+
   '<div>'+storeBtn()+'</div>'+
   '<div class="form"><div class="field"><label>내보낼 기록</label><div style="font-weight:600">'+esc(storeLabel())+' · 전체 기간 <span class="num">'+all.length+'건</span> · '+won(dayTotal(all))+'</div></div></div>'+
   '<button class="btn" data-act="exportcsv"'+(all.length?'':' disabled')+'>엑셀용 파일(CSV) 내려받기</button>'+
@@ -654,7 +654,8 @@ var THEMES=[
   {id:'mint',name:'민트',desc:'청록 파스텔 · 동글',bg:'#E6FAF3',sf:'#FFFFFF',ac:'#12B886',ink:'#0B3D3A',f:"'Dongle'"}];
 function curTheme(){return document.documentElement.getAttribute('data-theme')||'bang'}
 function setTheme(id){document.documentElement.setAttribute('data-theme',id);try{localStorage.setItem('receipt-app.theme',id)}catch(e){}
-  var t=THEMES.filter(function(x){return x.id===id})[0];var m=document.querySelector('meta[name=theme-color]');if(m&&t)m.setAttribute('content',t.bg)}
+  var t=THEMES.filter(function(x){return x.id===id})[0];var m=document.querySelector('meta[name=theme-color]');if(m&&t)m.setAttribute('content',t.bg);
+  if(NATIVE&&t){try{nativeCall('bars',{color:t.bg,dark:id==='night'}).catch(function(){})}catch(x){}}}
 var HELP=[
   {t:'영수증을 찍으면 끝',d:'<b>영수증 찍기</b>를 누르고 영수증을 찍으면 금액·날짜·가게·분류를 읽어서 채워 줘요. 확인하고 <b>저장하기</b>만 누르세요.',
    m:'<div class="hm-card"><div class="hm-lbl">금액</div><div class="hm-amt num">5,600원</div><div class="hm-row"><span>날짜</span><b>11월 21일</b></div><div class="hm-row"><span>가게</span><b>동네편의점</b></div><div class="hm-btn">저장하기</div></div>'},
@@ -1024,7 +1025,19 @@ function finishQueue(){
   history.back();
   toast(n?n+'건 저장했어요'+(other.length?' · '+other.map(ml).join(', ')+'에 들어갔어요':''):'저장하지 않았어요')}
 /* ---------- save / export (plain browser downloads) ---------- */
+var NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+var saverP=null;
+function nativeCall(m,o){var C=window.Capacitor;
+  if(C.registerPlugin){saverP=saverP||C.registerPlugin('Saver');return saverP[m](o)}
+  return C.nativePromise('Saver',m,o)}
+function saveWhere(blob){return NATIVE?((blob.type||'').indexOf('image/')===0?'사진/오늘얼마 폴더':'다운로드/오늘얼마 폴더'):'다운로드 폴더'}
 function downloadBlob(blob,name){
+  if(NATIVE){
+    var img=(blob.type||'').indexOf('image/')===0;var mm=/^(\d{4})(\d{2})\d{2}_/.exec(name);
+    var rd=new FileReader();rd.onload=function(){
+      nativeCall('save',{data:String(rd.result),name:name,mime:blob.type||'application/octet-stream',sub:img&&mm?mm[1]+'-'+mm[2]:''})
+        .catch(function(err){toast('저장하지 못했어요: '+((err&&err.message)||''))})};
+    rd.readAsDataURL(blob);return}
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
   document.body.appendChild(a);a.click();
   setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000)}
@@ -1034,7 +1047,7 @@ async function savePhoto(){
     var r=await sb.storage.from('receipts').download(e.photo);
     if(r.error||!r.data){toast('사진을 불러오지 못했어요');return}blob=r.data}
   if(!blob){toast('보관된 사진이 없어요');return}
-  downloadBlob(blob,fname(e));e.saved=true;persist();if(canEdit(e))saveDb(e);render();toast('폰에 저장했어요 (다운로드 폴더)')}
+  downloadBlob(blob,fname(e));e.saved=true;persist();if(canEdit(e))saveDb(e);render();toast('폰에 저장했어요 ('+saveWhere(blob)+')')}
 function tsv(){return rowsFor(S.month).map(function(r){return r.join('\t')}).join('\n')}
 async function copyIt(){var t=tsv();if(!t){toast('복사할 내용이 없어요');return}
   try{await navigator.clipboard.writeText(t);toast('복사했어요 · 정산표에 붙여넣으세요')}
