@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.levelup.receipts",
+        "sha256_cert_fingerprints": ["58:A9:E3:E5:08:AC:20:16:97:ED:6C:C8:D9:61:96:DC:F6:08:B7:3D:81:EB:16:EF:E0:54:35:88:1F:42:EE:AF"]
+      }
+    }]
