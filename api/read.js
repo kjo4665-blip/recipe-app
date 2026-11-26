@@ -5,10 +5,13 @@ const SB_URL = process.env.SUPABASE_URL || "https://ahgnlnyfyyoietjyjnhc.supabas
 const SB_KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable__jO-LKY2dxdi2QXonfzaIQ_dIQd8G9c";
 const AI_KEY = process.env.ANTHROPIC_API_KEY;
 
+const CATEGORIES = ["식비","카페·간식","술·유흥","장보기","생활용품","주거·월세","공과금·통신","교통·주유","자동차","의료·약","뷰티·미용","쇼핑·옷","교육비","문화·여가","경조사·선물","기타"];
+
 const PROMPT =
   "이 영수증 사진에서 정보를 읽어 JSON 객체 하나만 출력하세요. 코드블록, 설명, 다른 글자는 쓰지 마세요.\n" +
-  '형식: {"date":"YYYY-MM-DD","item":"품목 요약(한글 12자 이내)","amount":12000,"store":"상호"}\n' +
+  '형식: {"date":"YYYY-MM-DD","store":"가게 이름","item":"품목 요약(한글 12자 이내)","amount":12000,"category":"분류"}\n' +
   "amount는 실제 결제 합계 금액이며 쉼표·원 기호 없이 숫자만 씁니다.\n" +
+  "category는 다음 중 하나만 고릅니다: " + CATEGORIES.join(", ") + "\n" +
   '날짜를 읽을 수 없으면 date는 null. 품목이 여러 개면 대표 품목 한두 개로 요약. 영수증이 아니면 {"error":"not_receipt"}만 출력.';
 
 // 사진 형식을 base64 앞부분으로 판별 (jpeg/png/webp/gif)
@@ -85,6 +88,7 @@ module.exports = async (req, res) => {
       date, amount,
       item: String(o.item || o.store || "영수증").slice(0, 20),
       store: String(o.store || "").slice(0, 40),
+      category: CATEGORIES.includes(o.category) ? o.category : "기타",
     });
   } catch (e) {
     return res.status(500).json({ error: "crash", message: String((e && e.message) || e).slice(0, 200) });
