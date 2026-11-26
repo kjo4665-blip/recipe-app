@@ -154,6 +154,7 @@ var S={view:'home',cur:null,month:todayStr().slice(0,7),err:'',entries:load(),co
   started:false,email:'',sending:false,sent:false,loginMsg:'',
   uid:null,myEmail:'',me:null,stores:[],store:null,lastStore:null,members:[],mstores:[],dlg:null,undo:null,busyMsg:''};
 var qTimers={};
+try{S.email=localStorage.getItem('receipt-app.email')||''}catch(e){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(S.entries))}catch(e){}}
 function toast(m){var t=$('#toast');t.textContent=m;t.className='on';clearTimeout(toast._t);toast._t=setTimeout(function(){t.className=''},2400)}
 
@@ -268,11 +269,16 @@ function storeBtn(){
 function vLogin(){
   return ''+
   '<div class="top"><div class="brand"><i>'+LOGO+'</i>영수증 정리</div></div>'+
-  '<div class="slip"><div class="lbl">로그인</div><div class="sub" style="font-size:14px;margin-top:6px">이메일로 로그인 링크를 보내 드려요. 메일의 링크를 누르면 바로 들어와요.</div></div>'+
   (S.loginMsg?'<div class="err" role="alert">'+esc(S.loginMsg)+'</div>':'')+
-  '<div class="form"><div class="field"><label for="em">이메일</label><input id="em" type="email" inputmode="email" autocomplete="email" value="'+esc(S.email)+'"></div></div>'+
-  '<button class="btn primary" data-act="login"'+(S.sending?' disabled':'')+'>'+(S.sending?'보내는 중…':'로그인 링크 받기')+'</button>'+
-  (S.sent?'<div class="empty">메일을 보냈어요. 이 폰에서 메일의 링크를 눌러 주세요.</div>':'')}
+  '<div class="form">'+
+    '<div class="field"><label for="em">이메일</label><input id="em" type="email" inputmode="email" autocomplete="username" value="'+esc(S.email)+'"></div>'+
+    '<div class="field"><label for="pw">비밀번호</label><input id="pw" type="password" autocomplete="current-password"></div>'+
+  '</div>'+
+  '<button class="btn primary" data-act="pwlogin"'+(S.sending?' disabled':'')+'>'+(S.sending?'확인 중…':'로그인')+'</button>'+
+  '<div class="sec"><h2 style="font-size:14px">비밀번호가 없거나 잊으셨나요?</h2></div>'+
+  '<button class="btn sm" data-act="login"'+(S.sending?' disabled':'')+'>이메일로 로그인 링크 받기</button>'+
+  (S.sent?'<div class="empty">메일을 보냈어요. 이 폰에서 메일의 링크를 눌러 주세요.</div>':'')+
+  '<div class="fname">링크로 들어온 뒤 홈 맨 아래 <b>비밀번호 설정</b>에서 비밀번호를 만들면, 다음부터 바로 로그인할 수 있어요.</div>'}
 function vLoading(){return '<div class="busy"><div class="spin" role="img" aria-label="불러오는 중"></div><h1>불러오는 중</h1></div>'}
 function vNoAccess(){
   return ''+
@@ -297,6 +303,7 @@ function vHome(){
   (recent.length?'<div class="list">'+recent.map(function(e){return itemBtn(e,true)}).join('')+'</div>':'<div class="empty">아직 정리한 영수증이 없어요.<br>영수증을 찍으면 날짜와 금액을 자동으로 읽어요.</div>')+
   '<div class="footrow"><span class="sub">'+(function(){var n=S.me?S.me.name:'';var r=isAdmin()?'관리자':'직원';return esc(n===r?n:n+' · '+r)})()+'</span>'+
   (isAdmin()?'<button class="link" data-act="staff">직원 관리</button>':'')+
+  '<button class="link muted" data-act="setpw">비밀번호 설정</button>'+
   '<button class="link muted" data-act="logout">로그아웃</button></div>';
 }
 function vBusy(){return '<div class="busy"><div class="spin" role="img" aria-label="읽는 중"></div><h1>영수증 읽는 중</h1><div class="sub num">'+(S.prog&&S.prog.n>1?S.prog.i+' / '+S.prog.n+'장':'몇 초 걸려요')+'</div></div>'}
@@ -400,6 +407,12 @@ function dlgHtml(){
   }else if(d.type==='monthDel'){
     inner='<h2>삭제하시겠습니까?</h2><div class="sub" style="font-size:14px">'+esc(ml(S.month))+' · '+esc(storeLabel())+'<br><span class="num">'+d.n+'건 · '+won(d.total)+'</span></div>'+
       '<div class="pair"><button class="btn sm" data-act="dlgclose">아니요</button><button class="btn sm primary" data-act="delmonth-yes">예</button></div>';
+  }else if(d.type==='setPw'){
+    inner='<h2>비밀번호 설정</h2><div class="sub">'+esc(S.myEmail)+'</div>'+
+      '<input class="dlginput" id="d-pw1" type="password" autocomplete="new-password" placeholder="새 비밀번호 (6자 이상)">'+
+      '<input class="dlginput" id="d-pw2" type="password" autocomplete="new-password" placeholder="한 번 더 입력">'+
+      (d.msg?'<div class="err">'+esc(d.msg)+'</div>':'')+
+      '<div class="pair"><button class="btn sm" data-act="dlgclose">취소</button><button class="btn sm primary" data-act="setpw-yes"'+(d.busy?' disabled':'')+'>'+(d.busy?'저장 중…':'저장')+'</button></div>';
   }else if(d.type==='memRename'){
     var m=S.members.filter(function(x){return x.id===d.id})[0]||{};
     inner='<h2>이름 변경</h2><input class="dlginput" id="d-mname" type="text" maxlength="30" value="'+esc(m.name||'')+'">'+
@@ -598,13 +611,41 @@ function csvIt(){var rows=rowsFor(S.month);if(!rows.length){toast('저장할 내
   downloadBlob(new Blob([txt],{type:'text/csv;charset=utf-8'}),'영수증_'+cleanItem(storeLabel())+'_'+S.month+'.csv');toast('저장했어요')}
 
 /* ---------- auth ---------- */
+function rememberEmail(){try{localStorage.setItem('receipt-app.email',S.email)}catch(e){}}
+async function pwLogin(){
+  S.email=(($('#em')||{}).value||'').trim();var pw=($('#pw')||{}).value||'';
+  if(!/^\S+@\S+\.\S+$/.test(S.email)){S.loginMsg='이메일을 정확히 입력해 주세요';render();return}
+  if(!pw){S.loginMsg='비밀번호를 입력해 주세요';render();return}
+  S.sending=true;S.loginMsg='';render();
+  var r=await sb.auth.signInWithPassword({email:S.email,password:pw});
+  S.sending=false;
+  if(r.error){
+    var m=r.error.message||'';
+    S.loginMsg=/invalid login/i.test(m)?'이메일 또는 비밀번호가 맞지 않아요. 비밀번호를 만든 적이 없다면 아래 링크 로그인으로 들어와 주세요.':
+      /not confirmed/i.test(m)?'이메일 인증이 아직 안 됐어요. 아래 링크 로그인으로 먼저 들어와 주세요.':
+      /rate|too many/i.test(m)?'시도가 너무 많아요. 잠시 후 다시 해 주세요.':'로그인하지 못했어요: '+m;
+    render();return}
+  rememberEmail();
+}
+async function setPassword(){
+  var d=S.dlg;var a=($('#d-pw1')||{}).value||'',b=($('#d-pw2')||{}).value||'';
+  if(a.length<6){d.msg='비밀번호는 6자 이상으로 해 주세요';render();return}
+  if(a!==b){d.msg='두 비밀번호가 서로 달라요';render();return}
+  d.busy=true;d.msg='';render();
+  var r=await sb.auth.updateUser({password:a});
+  d.busy=false;
+  if(r.error){var m=r.error.message||'';
+    d.msg=/same/i.test(m)?'지금 비밀번호와 같아요. 다른 비밀번호로 해 주세요.':/weak|short/i.test(m)?'비밀번호가 너무 쉬워요. 더 길게 만들어 주세요.':/reauth/i.test(m)?'보안을 위해 다시 로그인한 뒤 설정해 주세요.':'저장하지 못했어요: '+m;
+    render();return}
+  S.dlg=null;render();toast('비밀번호를 저장했어요. 다음부터 이메일과 비밀번호로 로그인할 수 있어요');
+}
 async function sendLogin(){
   var em=($('#em')||{}).value||'';S.email=em.trim();
   if(!/^\S+@\S+\.\S+$/.test(S.email)){S.loginMsg='이메일을 정확히 입력해 주세요';render();return}
   S.sending=true;S.loginMsg='';render();
   var r=await sb.auth.signInWithOtp({email:S.email,options:{emailRedirectTo:location.origin+location.pathname}});
   S.sending=false;
-  if(r.error){S.loginMsg='메일을 보내지 못했어요: '+r.error.message}else{S.sent=true}
+  if(r.error){S.loginMsg=/rate|seconds/i.test(r.error.message)?'메일은 잠시 후 다시 받을 수 있어요. 1분 정도 기다려 주세요.':'메일을 보내지 못했어요: '+r.error.message}else{S.sent=true;rememberEmail()}
   render();
 }
 async function logout(){await sb.auth.signOut()}
@@ -614,7 +655,7 @@ sb.auth.onAuthStateChange(function(ev,session){
     S.started=true;
     setTimeout(function(){boot(session)},0);
   }else{
-    S.started=false;S.entries=[];S.me=null;S.stores=[];S.members=[];S.mstores=[];S.dlg=null;S.undo=null;S.view='login';S.sent=false;
+    S.started=false;S.entries=[];S.me=null;S.stores=[];S.members=[];S.mstores=[];S.dlg=null;S.undo=null;S.view='login';S.sent=false;S.loginMsg='';
     try{localStorage.removeItem(KEY)}catch(e){}
     render();
   }
@@ -628,6 +669,9 @@ document.addEventListener('click',function(ev){
   if(a==='cam')$('#f-cam').click();
   else if(a==='alb')$('#f-alb').click();
   else if(a==='login')sendLogin();
+  else if(a==='pwlogin')pwLogin();
+  else if(a==='setpw')openDlg({type:'setPw'});
+  else if(a==='setpw-yes')setPassword();
   else if(a==='logout')logout();
   else if(a==='home'){S.err='';goBack()}
   else if(a==='exit-no'){S.dlg=null;history.pushState({v:'home'},'');render()}
@@ -668,7 +712,8 @@ document.addEventListener('input',function(ev){
   queueSave(e);var fn=$('#fname');if(fn)fn.textContent=fname(e);var db=$('#dupbox');if(db)db.innerHTML=dupHtml(e)});
 document.addEventListener('keydown',function(ev){
   if(ev.key!=='Enter')return;
-  if(ev.target.id==='em')sendLogin();
+  if(ev.target.id==='em'||ev.target.id==='pw')pwLogin();
+  else if(ev.target.id==='d-pw1'||ev.target.id==='d-pw2')setPassword();
   else if(ev.target.id==='d-sname')saveStore();
   else if(ev.target.id==='d-mname')renameMember();
 });
