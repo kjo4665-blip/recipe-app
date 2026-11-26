@@ -51,6 +51,9 @@ module.exports = async (req, res) => {
     }),
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) return res.status(502).json({ error: "upstream" });
+  if (!r.ok) {
+    const msg = (j && j.error && j.error.message) || "";
+    return res.status(502).json({ error: "upstream", status: r.status, message: msg.slice(0, 300) });
+  }
   return res.status(200).json(j);
 };
