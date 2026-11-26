@@ -27,7 +27,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
       - name: 패키지 설치와 동기화
         run: |
           npm ci
