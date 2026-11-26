@@ -9,13 +9,27 @@ const CATEGORIES = ["식비","카페·간식","술·유흥","장보기","생활�
 
 function buildPrompt(cats) {
   return "이 영수증 사진에서 정보를 읽어 JSON 객체 하나만 출력하세요. 코드블록, 설명, 다른 글자는 쓰지 마세요.\n" +
-    '형식: {"date":"YYYY-MM-DD","store":"가게 이름","item":"품목 요약(한글 12자 이내)","amount":12000,"category":"분류"}\n' +
+    '형식: {"date":"YYYY-MM-DD","store":"가게 이름","item":"품목 요약(한글 12자 이내)","amount":12000,"category":"분류","pay":"결제수단","card":"카드사 끝4자리"}\n' +
+    "pay는 카드, 현금, 계좌이체, 기타 중 하나. 알 수 없으면 null.\n" +
+    "card는 카드 결제일 때만 '카드사 끝4자리' 형식(예: 신한 1234). 영수증에 가려진 카드번호의 마지막 4자리만 쓰고 전체 번호는 절대 쓰지 않습니다. 없으면 null.\n" +
     "amount는 실제 결제 합계 금액이며 쉼표·원 기호 없이 숫자만 씁니다.\n" +
     "category는 다음 중 하나만 고릅니다: " + cats.join(", ") + "\n" +
     '날짜를 읽을 수 없으면 date는 null. 품목이 여러 개면 대표 품목 한두 개로 요약. 영수증이 아니면 {"error":"not_receipt"}만 출력.';
 }
 
 // 앱이 보낸 분류 목록을 검사해서 쓰고, 없거나 이상하면 기본 목록을 쓴다
+const PAYS = ["카드", "현금", "계좌이체", "기타"];
+
+// 카드 정보는 '카드사 끝4자리'만 남긴다 (긴 숫자열은 버림)
+function cleanCard(v) {
+  if (typeof v !== "string") return "";
+  const t = v.replace(/[*xX#-]/g, " ").replace(/\s+/g, " ").trim();
+  const last4 = (t.match(/(\d{4})(?!.*\d)/) || [])[1] || "";
+  const name = (t.match(/[가-힣A-Za-z]+(?:카드)?/) || [])[0] || "";
+  if (/\d{5,}/.test(t.replace(/\s/g, "")) && !last4) return "";
+  return (name.replace(/카드$/, "") + (last4 ? " " + last4 : "")).trim().slice(0, 20);
+}
+
 function pickCategories(v) {
   if (!Array.isArray(v)) return CATEGORIES;
   const list = v.filter((x) => typeof x === "string" && x.trim() && x.length <= 12).map((x) => x.trim()).slice(0, 40);
@@ -100,6 +114,8 @@ module.exports = async (req, res) => {
       item: String(o.item || o.store || "영수증").slice(0, 20),
       store: String(o.store || "").slice(0, 40),
       category: cats.includes(o.category) ? o.category : "기타",
+      pay: PAYS.includes(o.pay) ? o.pay : "미확인",
+      card: cleanCard(o.card),
     });
   } catch (e) {
     return res.status(500).json({ error: "crash", message: String((e && e.message) || e).slice(0, 200) });
