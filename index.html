@@ -36,6 +36,10 @@ button:disabled{opacity:.5;cursor:default}
 .brand i{width:34px;height:34px;border-radius:10px;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;font-style:normal}
 .title{font-size:17px;font-weight:700}
 .pill{font-size:13px;font-weight:600;border-radius:999px;padding:6px 12px;background:var(--surface);border:1px solid var(--line);color:var(--sub)}
+button.pill{min-height:44px;padding:6px 14px;display:inline-flex;align-items:center;gap:4px;color:var(--ink)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:24px;z-index:50}
+.modal .box{background:var(--surface);color:var(--ink);border-radius:16px;padding:22px 20px 18px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:16px;text-align:center}
+.modal .box h2{margin:0;font-size:17px;font-weight:700}
 .chip{font-size:12px;font-weight:600;border-radius:6px;padding:3px 8px;white-space:nowrap}
 .chip.ok{background:var(--ok-soft);color:var(--ok)}
 .chip.warn{background:var(--warn-soft);color:var(--warn)}
@@ -196,7 +200,7 @@ function vHome(){
   var m=todayStr().slice(0,7);
   var recent=S.entries.slice().sort(function(a,b){return (b.at||0)-(a.at||0)}).slice(0,4);
   return ''+
-  '<div class="top"><div class="brand"><i>'+LOGO+'</i>영수증 정리</div><div class="pill">'+ml(m)+'</div></div>'+
+  '<div class="top"><div class="brand"><i>'+LOGO+'</i>영수증 정리</div><button class="pill" data-act="month" aria-label="월별 내역 보기">'+ml(m)+' <span aria-hidden="true">›</span></button></div>'+
   (S.err?'<div class="err" role="alert">'+esc(S.err)+'</div>':'')+
   slip(m,'이번 달 지출')+
   '<button class="btn primary" data-act="cam">'+CAM+' 영수증 찍기</button>'+
@@ -250,8 +254,25 @@ function vBatch(){
 }
 function render(){
   var h=S.view==='login'?vLogin():S.view==='busy'?vBusy():S.view==='result'?vResult():S.view==='batch'?vBatch():S.view==='month'?vMonth():vHome();
+  if(S.exitAsk)h+='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="exq"><div class="box"><h2 id="exq">사용을 종료하시겠습니까?</h2>'+
+    '<div class="pair"><button class="btn sm" data-act="exit-no">아니요</button><button class="btn sm primary" data-act="exit-yes">예</button></div></div></div>';
   $('#app').innerHTML=h;
 }
+/* ---------- navigation (back button support) ---------- */
+function snap(){return{v:S.view,cur:S.cur,month:S.month}}
+function go(view){S.exiting=false;S.exitAsk=false;S.view=view;history.pushState(snap(),'');render();window.scrollTo(0,0)}
+function goBack(){if(history.state&&history.state.v&&history.state.v!=='home'&&history.state.v!=='root')history.back();else{S.view='home';render()}}
+function initNav(){history.replaceState({v:'root'},'',location.pathname);history.pushState({v:'home'},'',location.pathname)}
+window.addEventListener('popstate',function(ev){
+  if(!S.started)return;
+  var st=ev.state||{v:'root'};
+  if(S.exiting)return;
+  if(st.v==='root'){S.view='home';S.exitAsk=true;render();return}
+  S.exitAsk=false;S.view=st.v;if(st.cur)S.cur=st.cur;if(st.month)S.month=st.month;S.copyText='';S.err='';render()});
+function exitApp(){
+  S.exitAsk=false;S.exiting=true;render();
+  try{window.close()}catch(e){}
+  setTimeout(function(){if(document.visibilityState==='visible')toast('뒤로가기를 한 번 더 누르면 종료돼요')},300)}
 
 /* ---------- AI reading (server route /api/read) ---------- */
 var PROMPT='이 영수증 사진에서 정보를 읽어 JSON 객체 하나만 출력하세요. 설명이나 다른 글자는 쓰지 마세요.\n'+
@@ -314,10 +335,9 @@ async function handleFiles(list){
     catch(err){S.batch.push({ok:false,name:arr[i].name||'사진',msg:errMsg(err)})}
   }
   S.prog=null;
-  if(n===1&&S.batch[0].ok){S.cur=S.batch[0].id;S.view='result'}
-  else if(S.batch.some(function(x){return x.ok})){S.view='batch'}
-  else{S.err=n+'장 모두 읽지 못했어요. '+S.batch[0].msg;S.view='home'}
-  render();window.scrollTo(0,0)}
+  if(n===1&&S.batch[0].ok){S.cur=S.batch[0].id;go('result')}
+  else if(S.batch.some(function(x){return x.ok})){go('batch')}
+  else{S.err=n+'장 모두 읽지 못했어요. '+S.batch[0].msg;S.view=(history.state&&history.state.v!=='root'&&history.state.v)||'home';if(S.view!=='home')toast(S.err);render();window.scrollTo(0,0)}}
 
 /* ---------- save / export (plain browser downloads) ---------- */
 function downloadBlob(blob,name){
@@ -352,7 +372,7 @@ async function logout(){
 sb.auth.onAuthStateChange(function(ev,session){
   if(session){
     if(S.started)return;
-    S.started=true;S.view='home';render();
+    S.started=true;S.view='home';initNav();render();
     loadFromServer().then(render);
   }else{
     S.started=false;S.entries=[];S.view='login';S.sent=false;
@@ -368,18 +388,20 @@ document.addEventListener('click',function(ev){
   else if(a==='alb')$('#f-alb').click();
   else if(a==='login')sendLogin();
   else if(a==='logout')logout();
-  else if(a==='home'){S.view='home';S.err='';render()}
-  else if(a==='month'){S.view='month';S.copyText='';render()}
-  else if(a==='open'){S.cur=b.getAttribute('data-id');S.view='result';render()}
+  else if(a==='home'){S.err='';goBack()}
+  else if(a==='exit-no'){S.exitAsk=false;history.pushState({v:'home'},'');render()}
+  else if(a==='exit-yes')exitApp();
+  else if(a==='month'){S.copyText='';S.month=S.view==='home'?todayStr().slice(0,7):S.month;go('month')}
+  else if(a==='open'){S.cur=b.getAttribute('data-id');go('result')}
   else if(a==='del'){
     var did=S.cur;clearTimeout(qTimers[did]);
     S.entries=S.entries.filter(function(e){return e.id!==did});files.delete(did);persist();deleteDb(did);
-    S.view='home';render();toast('삭제했어요')}
+    toast('삭제했어요');goBack()}
   else if(a==='savephoto')savePhoto();
   else if(a==='copy')copyIt();
   else if(a==='csv')csvIt();
   else if(a==='closecopy'){S.copyText='';render()}
-  else if(a==='prev'||a==='next'){var p=S.month.split('-').map(Number);var d=new Date(p[0],p[1]-1+(a==='next'?1:-1),1);S.month=d.getFullYear()+'-'+pad(d.getMonth()+1);S.copyText='';render()}
+  else if(a==='prev'||a==='next'){var p=S.month.split('-').map(Number);var d=new Date(p[0],p[1]-1+(a==='next'?1:-1),1);S.month=d.getFullYear()+'-'+pad(d.getMonth()+1);S.copyText='';history.replaceState(snap(),'');render()}
 });
 document.addEventListener('input',function(ev){
   var t=ev.target;var e=curE();if(!e)return;
