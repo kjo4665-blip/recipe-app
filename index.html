@@ -450,8 +450,7 @@ async function boot(session){
   try{if(!localStorage.getItem('receipt-app.help.v1'))S.dlg={type:'help',i:0}}catch(e){}
   render();
   if(NATIVE){
-    try{var pp=window.Capacitor.registerPlugin?(payP=payP||window.Capacitor.registerPlugin('Pay')):null;
-      if(pp&&pp.addListener){pp.addListener('payOpen',function(d){refreshPay(d&&d.id)});pp.addListener('payChanged',function(){refreshPay()})}}catch(x){}
+    capListen('Pay','payOpen',function(d){refreshPay(d&&d.id)});capListen('Pay','payChanged',function(){refreshPay()});
     document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){refreshPay();if(S.view==='backup')refreshPayStatus()}});
     refreshPay()}
 }
@@ -1108,15 +1107,19 @@ function finishQueue(){
 /* ---------- save / export (plain browser downloads) ---------- */
 var NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
 var saverP=null;
-function nativeCall(m,o){var C=window.Capacitor;
-  if(C.registerPlugin){saverP=saverP||C.registerPlugin('Saver');return saverP[m](o)}
-  return C.nativePromise('Saver',m,o)}
+function capCall(plugin,m,o){var C=window.Capacitor;
+  if(C.nativePromise)return C.nativePromise(plugin,m,o||{});
+  if(C.Plugins&&C.Plugins[plugin]&&C.Plugins[plugin][m])return C.Plugins[plugin][m](o||{});
+  if(C.registerPlugin)return C.registerPlugin(plugin)[m](o||{});
+  return Promise.reject(new Error('앱 연결 기능을 찾지 못했어요'))}
+function capListen(plugin,ev,cb){var C=window.Capacitor;
+  try{if(C.addListener)return C.addListener(plugin,ev,cb);if(C.registerPlugin)return C.registerPlugin(plugin).addListener(ev,cb)}catch(x){}}
+function nativeCall(m,o){return capCall('Saver',m,o)}
 var scanP=null;
 async function startScan(){
   if(!targetStore()){toast('매장을 먼저 추가해 주세요');return}
   try{
-    var C=window.Capacitor;scanP=scanP||C.registerPlugin('Scan');
-    var r=await scanP.scan({limit:10});var imgs=(r&&r.images)||[];if(!imgs.length)return;
+    var r=await capCall('Scan','scan',{limit:10});var imgs=(r&&r.images)||[];if(!imgs.length)return;
     var files=[];for(var k=0;k<imgs.length;k++){var bl=await (await fetch(imgs[k])).blob();files.push(new File([bl],'scan'+(k+1)+'.jpg',{type:'image/jpeg'}))}
     handleFiles(files)
   }catch(err){
@@ -1124,9 +1127,7 @@ async function startScan(){
     if(/cancel/i.test(msg))return;
     var detail=String((err&&err.message)||msg||'').slice(0,80);S.err='스캐너를 열 수 없었어요: '+detail;render();toast('스캐너 오류: '+detail);setTimeout(function(){$('#f-cam').click()},1200)}}
 var payP=null;
-function payCall(m,o){var C=window.Capacitor;
-  if(C.registerPlugin){payP=payP||C.registerPlugin('Pay');return payP[m](o||{})}
-  return C.nativePromise('Pay',m,o||{})}
+function payCall(m,o){return capCall('Pay',m,o)}
 function payStore(){var v=null;try{v=localStorage.getItem('receipt-app.paystore')}catch(e){}
   if(v&&storeById(v))return v;if(S.store&&S.store!=='all'&&storeById(S.store))return S.store;return S.stores[0]?S.stores[0].id:null}
 function guessCat(place){if(!place)return '기타';
