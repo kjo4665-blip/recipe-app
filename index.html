@@ -249,6 +249,13 @@ textarea{width:100%;height:140px;border-radius:10px;border:1px solid var(--line)
 [data-theme="mint"] .btn.primary{background:linear-gradient(135deg,#20C997,#0CA678);box-shadow:0 8px 18px rgba(18,184,134,.3)}
 [data-theme="mint"] .title,[data-theme="mint"] .sec h2,[data-theme="mint"] .hmlabel,[data-theme="mint"] .modal h2{font-size:1.75em;line-height:1}
 [hidden]{display:none!important}
+.paybanner{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:48px;padding:10px 16px;border-radius:var(--r);border:2px solid var(--accent);background:var(--surface);color:var(--ink);font-size:15px;font-weight:600}
+.paybanner span:last-child{color:var(--accent)}
+.prow{display:flex!important;flex-direction:row!important;justify-content:space-between;align-items:center;gap:10px}
+.yn{display:flex;gap:4px;flex:none}
+.yn button{min-width:56px;min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-weight:700;font-size:14px}
+.yn button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.okc{color:#2B8A3E}.bad{color:#C92A2A}
 .ci{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:none}
 .ci img{width:62%;height:62%;display:block}
 .ci i{display:block;width:58%;height:58%;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
@@ -441,6 +448,11 @@ async function boot(session){
   initNav();S.view='home';
   try{if(!localStorage.getItem('receipt-app.help.v1'))S.dlg={type:'help',i:0}}catch(e){}
   render();
+  if(NATIVE){
+    try{var pp=window.Capacitor.registerPlugin?(payP=payP||window.Capacitor.registerPlugin('Pay')):null;
+      if(pp&&pp.addListener){pp.addListener('payOpen',function(d){refreshPay(d&&d.id)});pp.addListener('payChanged',function(){refreshPay()})}}catch(x){}
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){refreshPay();if(S.view==='backup')refreshPayStatus()}});
+    refreshPay()}
 }
 
 /* ---------- views ---------- */
@@ -500,11 +512,12 @@ function vHome(){
   var recent=monthEntries(m).sort(function(a,b){return (b.at||0)-(a.at||0)}).slice(0,4);
   var noStore=!S.stores.length;var dis=noStore?' disabled':'';
   return ''+
-  '<div class="top"><div class="logo"><img src="/icon-192.png" alt=""><span>오늘<b>얼마</b></span></div><div class="tools"><button class="tool" data-act="stats">통계</button><button class="tool" data-act="backup">백업</button><button class="tool" data-act="theme">테마</button><button class="tool" data-act="help" aria-label="도움말">?</button></div></div>'+
+  '<div class="top"><div class="logo"><img src="/icon-192.png" alt=""><span>오늘<b>얼마</b></span></div><div class="tools"><button class="tool" data-act="stats">통계</button><button class="tool" data-act="backup">'+(NATIVE?'설정':'백업')+'</button><button class="tool" data-act="theme">테마</button><button class="tool" data-act="help" aria-label="도움말">?</button></div></div>'+
   '<div class="srow2">'+storeBtn()+'<button class="iconbtn" data-act="search" aria-label="검색">'+SEARCH+'</button></div>'+
   monthNav()+
   (S.err?'<div class="err" role="alert">'+esc(S.err)+'</div>':'')+
   (noStore?'<div class="err">'+(isAdmin()?'매장을 먼저 추가해 주세요. 왼쪽 위 매장 버튼을 누르세요.':'배정된 매장이 없어요. 관리자에게 요청해 주세요.')+'</div>':'')+
+  (NATIVE&&S.payItems&&S.payItems.length?'<button class="paybanner" data-act="payqueue"><span>🔔 결제 알림 <b class="num">'+S.payItems.length+'건</b> 확인 대기</span><span>확인하기 ›</span></button>':'')+
   homeSlip(m)+
   '<button class="btn primary" data-act="cam"'+dis+'>'+CAM+' 영수증 찍기</button>'+
   '<div class="pair"><button class="btn sm" data-act="alb"'+dis+'>'+IMG+' 앨범에서</button><button class="btn sm" data-act="manual"'+dis+'>'+PEN+' 직접 쓰기</button></div>'+
@@ -518,7 +531,19 @@ function vHome(){
 }
 function vBusy(){return '<div class="busy"><div class="spin" role="img" aria-label="읽는 중"></div><h1>영수증 읽는 중</h1><div class="sub num">'+(S.prog&&S.prog.n>1?S.prog.i+' / '+S.prog.n+'장':'몇 초 걸려요')+'</div></div>'}
 function curE(){return S.entries.filter(function(e){return e.id===S.cur&&!e.deleted})[0]}
-function dupHtml(e){return isDup(e)?'<span class="chip warn">중복 의심</span>':'<span class="chip ok">중복 없음</span>'}
+function dupMatch(e){return live().filter(function(o){return o.id!==e.id&&o.store===e.store&&o.date===e.date&&o.amount===e.amount})[0]}
+function dupHtml(e){
+  if(!isDup(e))return '<span class="chip ok">중복 없음</span>';
+  var m=dupMatch(e);var drafting=S.view==='confirm'&&curDraft()===e;
+  var extra='';
+  if(drafting&&m&&files.has(e.id)&&!m.photo)extra='<div class="sub" style="font-size:13px;margin-top:6px">같은 날 같은 금액의 <b>'+esc(m.item||m.place||'기록')+'</b>에 사진이 없어요.</div><button class="btn sm" data-act="attachphoto" style="margin-top:6px">새로 만들지 않고 그 기록에 사진만 붙이기</button>';
+  else if(drafting&&m&&e.fromPay)extra='<div class="sub" style="font-size:13px;margin-top:6px">같은 날 같은 금액의 <b>'+esc(m.item||m.place||'기록')+'</b>이(가) 이미 있어요. 같은 결제라면 <b>이 결제는 추가 안 함</b>을 눌러 주세요.</div>';
+  return '<span class="chip warn">중복 의심</span>'+extra}
+function attachPhoto(){
+  var d=curDraft();if(!d)return;var m=dupMatch(d);var f=files.get(d.id);if(!m||!f)return;
+  if(!m.place&&d.place)m.place=d.place;
+  if(autoSaveOn()){try{downloadBlob(f.blob,fname(m));m.saved=true}catch(x){}}
+  uploadPhoto(m,d.upBlob||f.blob);persist();saveDb(m);S.saved++;toast('기존 기록에 사진을 붙였어요');nextDraft()}
 function storeField(e,dis){
   return S.stores.length>1?
     '<div class="field"><label for="f-store">매장</label><select id="f-store"'+dis+'>'+S.stores.map(function(s){return '<option value="'+esc(s.id)+'"'+(s.id===e.store?' selected':'')+'>'+esc(s.name)+'</option>'}).join('')+'</select></div>':
@@ -570,13 +595,13 @@ function vConfirm(){
   var d=curDraft();if(!d)return vHome();var n=S.queue.length;
   var f=files.get(d.id);if(f&&!d.thumb){try{d.thumb=URL.createObjectURL(f.blob)}catch(x){}}
   return ''+
-  '<div class="top"><button class="iconbtn" data-act="home" aria-label="취소하고 돌아가기">'+BACK+'</button><div class="title">'+(d.manual?'직접 쓰기':'영수증 확인'+(n>1?' <span class="num">'+(S.qi+1)+'/'+n+'</span>':''))+'</div><div style="width:44px"></div></div>'+
-  (d.manual?'':'<div class="note">영수증에서 읽은 내용이에요. 틀린 곳이 있으면 고친 뒤 <b>저장하기</b>를 눌러 주세요.</div>')+
+  '<div class="top"><button class="iconbtn" data-act="home" aria-label="취소하고 돌아가기">'+BACK+'</button><div class="title">'+(d.fromPay?'결제 알림 확인':d.manual?'직접 쓰기':'영수증 확인')+(n>1?' <span class="num">'+(S.qi+1)+'/'+n+'</span>':'')+'</div><div style="width:44px"></div></div>'+
+  (d.fromPay?'<div class="note">카드 결제 알림에서 읽은 내용이에요. 가게 이름이 잘렸으면 고친 뒤 <b>저장하기</b>를 눌러 주세요.</div>':d.manual?'':'<div class="note">영수증에서 읽은 내용이에요. 틀린 곳이 있으면 고친 뒤 <b>저장하기</b>를 눌러 주세요.</div>')+
   (d.check?'<div class="err" role="alert">날짜를 읽지 못해 오늘 날짜를 넣었어요. 확인해 주세요.</div>':'')+
   (d.thumb?'<img class="thumb" src="'+d.thumb+'" alt="찍은 영수증">':'')+
   entryForm(d,'')+
   '<div class="stick"><button class="btn primary" data-act="savedraft">저장하기</button>'+
-  (n>1?'<button class="btn quiet" data-act="skipdraft">이 영수증은 저장 안 함</button>':'')+'</div>'}
+  (d.fromPay?'<button class="btn quiet" data-act="skipdraft">이 결제는 추가 안 함</button>':n>1?'<button class="btn quiet" data-act="skipdraft">이 영수증은 저장 안 함</button>':'')+'</div>'}
 function vMonth(){
   var m=S.month;var days=byDay(m).slice().reverse();var n=monthEntries(m).length;
   var body=days.map(function(day){
@@ -617,10 +642,28 @@ function vStats(){
     '<div class="cmp"><div><span class="sub">'+ml(m)+'</span>'+catBar(ra,ta)+'</div><div><span class="sub">'+ml(pm)+' · '+won(tb)+'</span>'+catBar(rb,tb)+'</div></div>'+
     '<div class="meta"><span>영수증 '+a.length+'건</span><span>지난달 '+b.length+'건</span></div></div>'+
   (cats.length?'<div class="form stable"><div class="srow3 head"><span></span><span>분류</span><span>이번 달</span><span>지난달</span><span>증감</span></div>'+rows+'</div>':'<div class="empty">두 달 모두 기록이 없어요.</div>')}
+function paySettings(){
+  var s=S.payStatus;if(!s){refreshPayStatus();return '<div class="sec"><h2>결제 문자·알림으로 추가</h2></div><div class="empty">불러오는 중…</div>'}
+  var yn=function(act,on){return '<div class="yn"><button class="'+(on?'on':'')+'" data-act="'+act+'" data-on="1" aria-pressed="'+on+'">예</button><button class="'+(on?'':'on')+'" data-act="'+act+'" data-on="0" aria-pressed="'+!on+'">아니요</button></div>'};
+  var smsSt=!s.smsOn?'꺼짐':s.smsPerm?'<span class="okc">켜짐 · 카드 승인 문자를 읽어요</span>':'<span class="bad">문자 권한이 필요해요</span>';
+  var ntSt=!s.notifOn?'꺼짐':s.notifAccess?'<span class="okc">켜짐 · 카드·페이 앱 알림을 읽어요</span>':'<span class="bad">설정에서 "오늘얼마 결제 알림 읽기"를 허용해 주세요</span>';
+  var needHelp=(s.smsOn&&!s.smsPerm)||(s.notifOn&&!s.notifAccess);
+  return '<div class="sec"><h2>결제 문자·알림으로 추가</h2></div>'+
+  '<div class="note">카드 결제 문자나 앱 알림이 오면 <b>"추가할까요?"</b> 알림을 띄워요. 문자 원문은 저장하지 않고 금액·날짜·가게·카드 끝 4자리만 읽어요.</div>'+
+  '<div class="form">'+
+    '<div class="field"><label for="pay-store">이 폰의 기본 매장</label><select id="pay-store">'+S.stores.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===payStore()?' selected':'')+'>'+esc(x.name)+'</option>'}).join('')+'</select></div>'+
+    '<div class="field prow"><div><b>카드 문자 읽기</b><div class="sub" style="font-size:12px">'+smsSt+'</div></div>'+yn('paysms',s.smsOn)+'</div>'+
+    '<div class="field prow"><div><b>앱 알림 읽기</b><div class="sub" style="font-size:12px">'+ntSt+'</div></div>'+yn('paynotif',s.notifOn)+'</div>'+
+  '</div>'+
+  ((s.smsOn||s.notifOn)&&!s.postNotif?'<div class="err">폰에서 이 앱의 알림이 꺼져 있어 "추가할까요?" 알림이 안 떠요. 앱 정보 › 알림에서 켜 주세요.</div><button class="btn sm" data-act="payappinfo">앱 정보 열기</button>':'')+
+  (needHelp?'<div class="note"><b>허용 버튼이 회색으로 눌리지 않으면</b><br>앱 정보 › 오른쪽 위 ⋮ › <b>제한된 설정 허용</b>을 누른 뒤 다시 켜 주세요. (스토어 밖에서 설치한 앱이라 한 번 필요해요)</div><button class="btn sm" data-act="payappinfo">앱 정보 열기</button>':'')+
+  (s.ignored&&s.ignored.length?'<div class="form"><div class="field"><label>묻지 않는 카드</label>'+s.ignored.map(function(c){return '<div class="prow"><span class="num" style="font-weight:600">'+esc(c)+'</span><button class="link" data-act="payunmute" data-card="'+esc(c)+'">다시 묻기</button></div>'}).join('')+'</div></div>':'')+
+  '<div class="sec"><h2>백업</h2></div>'}
 function vBackup(){
   var all=scoped();
   return ''+
-  '<div class="top"><button class="iconbtn" data-act="home" aria-label="뒤로">'+BACK+'</button><div class="title">백업</div><div style="width:44px"></div></div>'+
+  '<div class="top"><button class="iconbtn" data-act="home" aria-label="뒤로">'+BACK+'</button><div class="title">'+(NATIVE?'설정 · 백업':'백업')+'</div><div style="width:44px"></div></div>'+
+  (NATIVE?paySettings():'')+
   '<div class="note">기록과 영수증 사진은 서버에 자동으로 보관돼요. 백업은 혹시 모를 때를 위해 파일로 따로 보관하는 기능이에요.</div>'+
   '<label class="toggle"><input type="checkbox" data-act="togautosave"'+(autoSaveOn()?' checked':'')+'><span><b>저장할 때 사진을 폰에도 저장</b><br><span class="sub" style="font-size:13px">이 폰의 '+(NATIVE?'사진/오늘얼마/2026년 11월 같은 월별 폴더':'다운로드 폴더')+'에 날짜_품목_금액 이름으로 저장돼요</span></span></label>'+
   '<div>'+storeBtn()+'</div>'+
@@ -807,6 +850,12 @@ function dlgHtml(){
       (d.msg?'<div class="err">'+esc(d.msg)+'</div>':'')+
       '<div class="pair"><button class="btn sm" data-act="dlgclose">취소</button><button class="btn sm primary" data-act="catsave"'+(d.busy?' disabled':'')+'>'+(d.name?'저장':'추가')+'</button></div>'+
       (d.name&&!other?'<button class="btn sm quiet danger" data-act="catdel">이 분류 삭제</button>':'');
+  }else if(d.type==='payCancel'){
+    var it=d.it,mm=d.match;
+    inner='<h2>결제가 취소됐어요</h2><div class="sub">'+esc(it.place||'카드 결제')+' <b class="num">'+won(it.amount)+'</b><br>'+esc(md(it.date))+' '+esc(it.time||'')+' · '+esc(((it.company||'')+' '+(it.card||'')).trim())+
+      (mm?'<br><br>가계부의 <b>'+esc(mm.item||mm.place||'기록')+'</b> 기록을 삭제하시겠습니까?':'<br><br>가계부에서 같은 결제 기록을 찾지 못했어요.')+'</div>'+
+      (mm?'<div class="pair"><button class="btn sm" data-act="paycancel-no">아니요</button><button class="btn sm primary" data-act="paycancel-yes">예</button></div>':
+          '<button class="btn sm primary" data-act="paycancel-no">확인</button>');
   }else if(d.type==='catDel'){
     var n=live().filter(function(e){return e.category===d.name}).length;
     inner='<h2>분류를 삭제하시겠습니까?</h2><div class="sub">'+esc(d.name)+(n?'<br>이 분류의 기록 <b class="num">'+n+'건</b>은 <b>기타</b>로 옮겨져요':'')+'</div>'+
@@ -1030,6 +1079,7 @@ function saveDraft(){
     amount:d.amount,check:false,at:Date.now(),store:d.store,uid:S.uid,by:(S.me&&S.me.role==='staff')?S.me.name:'',
     pay:d.pay||'미확인',card:d.pay==='카드'?(d.card||'').trim():'',photo:''};
   S.entries.push(e);persist();saveDb(e);S.saved++;
+  if(d.payId)payRemove(d.payId);
   var f=files.get(e.id);
   if(f){
     if(autoSaveOn()){try{downloadBlob(f.blob,fname(e));e.saved=true}catch(x){}}
@@ -1059,6 +1109,33 @@ var saverP=null;
 function nativeCall(m,o){var C=window.Capacitor;
   if(C.registerPlugin){saverP=saverP||C.registerPlugin('Saver');return saverP[m](o)}
   return C.nativePromise('Saver',m,o)}
+var payP=null;
+function payCall(m,o){var C=window.Capacitor;
+  if(C.registerPlugin){payP=payP||C.registerPlugin('Pay');return payP[m](o||{})}
+  return C.nativePromise('Pay',m,o||{})}
+function payStore(){var v=null;try{v=localStorage.getItem('receipt-app.paystore')}catch(e){}
+  if(v&&storeById(v))return v;if(S.store&&S.store!=='all'&&storeById(S.store))return S.store;return S.stores[0]?S.stores[0].id:null}
+function guessCat(place){if(!place)return '기타';
+  var l=live().filter(function(e){return e.place===place}).sort(function(a,b){return (b.at||0)-(a.at||0)});return l[0]?normCat(l[0].category):'기타'}
+function payMatch(it){return scoped().filter(function(e){return e.date===it.date&&e.amount===it.amount&&(!it.card||!e.card||e.card.indexOf(it.card)>=0)})[0]}
+var payBusy=false;
+async function refreshPay(openId){
+  if(!NATIVE||!S.me||payBusy)return;payBusy=true;
+  try{var r=await payCall('pending');S.payItems=r.items||[];var lid=openId||r.launch;
+    if(lid&&S.view!=='confirm')openPay(lid);else if(S.view==='home'||S.view==='backup')render()}catch(x){}
+  payBusy=false}
+async function refreshPayStatus(){if(!NATIVE)return;try{S.payStatus=await payCall('getStatus');if(S.view==='backup')render()}catch(x){}}
+function payRemove(id){S.payItems=(S.payItems||[]).filter(function(x){return x.id!==id});try{payCall('remove',{id:id}).catch(function(){})}catch(x){}}
+function openPay(startId){
+  var items=(S.payItems||[]).slice();if(!items.length){toast('확인할 결제 알림이 없어요');render();return}
+  if(startId){items.sort(function(a,b){return a.id===startId?-1:b.id===startId?1:0})}
+  var c=items.filter(function(x){return x.kind==='cancel'})[0];
+  if(c&&(!startId||startId===c.id||items[0].kind==='cancel')){openDlg({type:'payCancel',it:c,match:payMatch(c)});return}
+  var ap=items.filter(function(x){return x.kind!=='cancel'});if(!ap.length){render();return}
+  if(!S.stores.length){toast('매장이 없어 추가할 수 없어요');return}
+  S.queue=ap.map(function(it){return{id:newId(),date:it.date,item:it.install?it.install+' 할부':'',place:it.place||'',category:guessCat(it.place),amount:it.amount,
+    store:payStore(),manual:true,fromPay:true,payId:it.id,pay:'카드',card:((it.company||'')+' '+(it.card||'')).trim()}});
+  S.qi=0;S.saved=0;S.fails=[];S.savedMonths=[];go('confirm')}
 function saveWhere(blob){return NATIVE?((blob.type||'').indexOf('image/')===0?'사진/오늘얼마 폴더':'다운로드/오늘얼마 폴더'):'다운로드 폴더'}
 function downloadBlob(blob,name){
   if(NATIVE){
@@ -1238,7 +1315,15 @@ document.addEventListener('click',function(ev){
   else if(a==='catup')moveCat(Number(b.getAttribute('data-i')),-1);
   else if(a==='catdown')moveCat(Number(b.getAttribute('data-i')),1);
   else if(a==='savedraft')saveDraft();
-  else if(a==='skipdraft')nextDraft();
+  else if(a==='skipdraft'){var sd=curDraft();if(sd&&sd.payId)payRemove(sd.payId);nextDraft()}
+  else if(a==='attachphoto')attachPhoto();
+  else if(a==='payqueue')openPay();
+  else if(a==='paysms'||a==='paynotif'){var on=b.getAttribute('data-on')==='1';
+    payCall(a==='paysms'?'setSms':'setNotif',{on:on}).then(function(s){S.payStatus=s;render();if(on&&a==='paysms'&&!s.smsPerm)toast('문자 권한이 허용되지 않았어요. 아래 안내를 확인해 주세요')}).catch(function(err){toast('설정을 바꾸지 못했어요')})}
+  else if(a==='payappinfo'){payCall('openAppInfo').catch(function(){})}
+  else if(a==='payunmute'){payCall('unmute',{card:b.getAttribute('data-card')}).then(function(s){S.payStatus=s;render();toast('이 카드를 다시 물어봐요')})}
+  else if(a==='paycancel-yes'){var dc=S.dlg;S.dlg=null;if(dc.match)softDelete([dc.match.id],'취소된 결제 기록을 삭제했어요');payRemove(dc.it.id);if((S.payItems||[]).length)openPay();else render()}
+  else if(a==='paycancel-no'){var dn=S.dlg;S.dlg=null;payRemove(dn.it.id);if((S.payItems||[]).length)openPay();else render()}
   else if(a==='pickcat'){var te=editTarget();if(!te)return;te.category=b.getAttribute('data-cat');
     $$('.cats .cat').forEach(function(x){var on=x.getAttribute('data-cat')===te.category;x.classList.toggle('on',on);x.setAttribute('aria-checked',on)});afterEdit(te)}
   else if(a==='stats')go('stats');
@@ -1258,6 +1343,7 @@ function editTarget(){if(S.view==='confirm')return curDraft();var e=curE();retur
 function afterEdit(e){if(S.view!=='confirm')queueSave(e);var fn=$('#fname');if(fn)fn.textContent=fname(e);var db=$('#dupbox');if(db)db.innerHTML=dupHtml(e)}
 document.addEventListener('input',function(ev){
   var t=ev.target;
+  if(t.id==='pay-store'){try{localStorage.setItem('receipt-app.paystore',t.value)}catch(x){}toast('이 폰의 기본 매장을 바꿨어요');return}
   if(S.view==='search'&&t.id&&t.id.indexOf('s-')===0){var q=S.q;var k=t.id.slice(2);if(k in q){q[k]=t.value}
     if(k==='period'){var c=$('#s-custom');if(c)c.hidden=t.value!=='custom'}refreshSearch();return}
   var e=editTarget();if(!e)return;
