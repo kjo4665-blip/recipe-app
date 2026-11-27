@@ -9,9 +9,9 @@ const CATEGORIES = ["식비","카페·간식","술·유흥","장보기","생활�
 
 function buildPrompt(cats) {
   return "이 영수증 사진에서 정보를 읽어 JSON 객체 하나만 출력하세요. 코드블록, 설명, 다른 글자는 쓰지 마세요.\n" +
-    '형식: {"date":"YYYY-MM-DD","store":"가게 이름","item":"품목 요약(한글 12자 이내)","amount":12000,"category":"분류","pay":"결제수단","card":"카드사 끝4자리"}\n' +
+    '형식: {"date":"YYYY-MM-DD","store":"가게 이름","item":"품목 요약(한글 12자 이내)","amount":12000,"category":"분류","pay":"결제수단","card":"카드사 카드번호"}\n' +
     "pay는 카드, 현금, 계좌이체, 기타 중 하나. 알 수 없으면 null.\n" +
-    "card는 카드 결제일 때만 '카드사 끝4자리' 형식(예: 신한 1234). 영수증에 가려진 카드번호의 마지막 4자리만 쓰고 전체 번호는 절대 쓰지 않습니다. 없으면 null.\n" +
+    "card는 카드 결제일 때만 '카드사 카드번호' 형식으로, 영수증에 찍힌 카드번호를 보이는 그대로(* 가림 표시와 - 포함) 씁니다(예: 신한 4518-42**-****-6910). 카드사 이름이 없으면 번호만, 번호가 없으면 카드사만 씁니다. 없으면 null.\n" +
     "amount는 실제 결제 합계 금액이며 쉼표·원 기호 없이 숫자만 씁니다.\n" +
     "category는 다음 중 하나만 고릅니다: " + cats.join(", ") + "\n" +
     '날짜를 읽을 수 없으면 date는 null. 품목이 여러 개면 대표 품목 한두 개로 요약. 영수증이 아니면 {"error":"not_receipt"}만 출력.';
@@ -20,14 +20,10 @@ function buildPrompt(cats) {
 // 앱이 보낸 분류 목록을 검사해서 쓰고, 없거나 이상하면 기본 목록을 쓴다
 const PAYS = ["카드", "현금", "계좌이체", "기타"];
 
-// 카드 정보는 '카드사 끝4자리'만 남긴다 (긴 숫자열은 버림)
+// 카드 정보: 카드사 + 영수증에 보이는 카드번호 그대로(*, - 포함)
 function cleanCard(v) {
   if (typeof v !== "string") return "";
-  const t = v.replace(/[*xX#-]/g, " ").replace(/\s+/g, " ").trim();
-  const last4 = (t.match(/(\d{4})(?!.*\d)/) || [])[1] || "";
-  const name = (t.match(/[가-힣A-Za-z]+(?:카드)?/) || [])[0] || "";
-  if (/\d{5,}/.test(t.replace(/\s/g, "")) && !last4) return "";
-  return (name.replace(/카드$/, "") + (last4 ? " " + last4 : "")).trim().slice(0, 20);
+  return v.replace(/[^\uAC00-\uD7A3A-Za-z0-9*xX#\- ]/g, " ").replace(/\s+/g, " ").trim().slice(0, 40);
 }
 
 function pickCategories(v) {

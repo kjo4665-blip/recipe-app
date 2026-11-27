@@ -560,7 +560,7 @@ function entryForm(e,dis){
     '<div class="field"><label>중복 확인</label><div id="dupbox">'+dupHtml(e)+'</div></div>'+
   '</div>'+
   '<div class="form"><div class="field"><label>결제수단</label>'+payChips(e.pay,!!dis)+'</div>'+
-    '<div class="field" id="cardrow"'+(e.pay==='카드'?'':' hidden')+'><label for="f-card">카드 (카드사 끝4자리)</label><input id="f-card" type="text" maxlength="20" placeholder="예: 신한 1234" value="'+esc(e.card||'')+'"'+dis+'></div></div>'+
+    '<div class="field" id="cardrow"'+(e.pay==='카드'?'':' hidden')+'><label for="f-card">카드번호</label><input id="f-card" type="text" maxlength="40" placeholder="예: 신한 4518-42**-****-6910" value="'+esc(e.card||'')+'"'+dis+'></div></div>'+
   '<div class="form catcard"><div class="field"><label>분류</label>'+catChips(e.category,!!dis)+'</div></div>'}
 var PAYS=['카드','현금','계좌이체','기타'];
 function payChips(sel,disabled){
@@ -1048,7 +1048,7 @@ async function readDraft(file,store){
     var amt=Math.round(Number(String(o.amount).replace(/[^\d.-]/g,'')))||0;
     var okDate=/^\d{4}-\d{2}-\d{2}$/.test(o.date||'');
     var d={id:newId(),date:okDate?o.date:todayStr(),item:String(o.item||'').slice(0,20),place:String(o.store||'').slice(0,40),
-      category:normCat(o.category),amount:amt,check:!okDate,store:store,pay:PAYS.indexOf(o.pay)>=0?o.pay:'미확인',card:String(o.card||'').slice(0,20),upBlob:small};
+      category:normCat(o.category),amount:amt,check:!okDate,store:store,pay:PAYS.indexOf(o.pay)>=0?o.pay:'미확인',card:String(o.card||'').slice(0,40),upBlob:small};
     var t=(file.type||'').toLowerCase();var ex=t==='image/png'?'png':t==='image/webp'?'webp':'jpg';
     var keep=(t==='image/jpeg'||t==='image/png'||t==='image/webp')?file:small;
     files.set(d.id,{blob:keep,ext:ex});
@@ -1149,7 +1149,7 @@ function openPay(startId){
   var ap=items.filter(function(x){return x.kind!=='cancel'});if(!ap.length){render();return}
   if(!S.stores.length){toast('매장이 없어 추가할 수 없어요');return}
   S.queue=ap.map(function(it){return{id:newId(),date:it.date,item:it.install?it.install+' 할부':'',place:it.place||'',category:guessCat(it.place),amount:it.amount,
-    store:payStore(),manual:true,fromPay:true,payId:it.id,pay:'카드',card:((it.company||'')+' '+(it.card||'')).trim()}});
+    store:payStore(),manual:true,fromPay:true,payId:it.id,pay:'카드',card:((it.company||'')+(it.card?' ****-'+it.card:'')).trim()}});
   S.qi=0;S.saved=0;S.fails=[];S.savedMonths=[];go('confirm')}
 function saveWhere(blob){return NATIVE?((blob.type||'').indexOf('image/')===0?'사진/오늘얼마 폴더':'다운로드/오늘얼마 폴더'):'다운로드 폴더'}
 function downloadBlob(blob,name){
@@ -1368,7 +1368,7 @@ document.addEventListener('input',function(ev){
   else if(t.id==='f-place')e.place=t.value.slice(0,40);
   else if(t.id==='f-amt')e.amount=Math.max(0,Math.round(Number(t.value))||0);
   else if(t.id==='f-store'){e.store=t.value}
-  else if(t.id==='f-card')e.card=t.value.slice(0,20)
+  else if(t.id==='f-card')e.card=t.value.slice(0,40)
   else return;
   afterEdit(e)});
 document.addEventListener('keydown',function(ev){
