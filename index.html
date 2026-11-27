@@ -922,7 +922,13 @@ window.addEventListener('popstate',function(ev){
   if(st.v==='root'){S.view='home';S.dlg={type:'exit'};render();return}
   if(S.queue&&st.v!=='confirm'){S.queue=null;S.qi=0;toast('저장하지 않고 나왔어요')}
   S.dlg=null;S.view=st.v;if(st.cur)S.cur=st.cur;if(st.month)S.month=st.month;S.copyText='';S.err=S.pendingErr||'';S.pendingErr='';render()});
+window.__appBack=function(){
+  if(S.dlg&&S.dlg.type==='exit'){S.dlg=null;history.pushState({v:'home'},'');render();return true}
+  if(!S.started||!S.me)return false;
+  if(S.dlg){S.dlg=null;history.pushState({v:S.view==='home'?'home':S.view},'');render();return true}
+  S.view='home';S.dlg={type:'exit'};render();return true};
 function exitApp(){
+  if(NATIVE){S.dlg=null;render();capCall('Saver','exit').catch(function(){});return}
   S.dlg=null;S.exiting=true;render();
   try{window.close()}catch(e){}
   setTimeout(function(){if(document.visibilityState==='visible')toast('뒤로가기를 한 번 더 누르면 종료돼요')},300)}

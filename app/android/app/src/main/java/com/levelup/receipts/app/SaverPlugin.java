@@ -63,6 +63,13 @@ public class SaverPlugin extends Plugin {
         }
     }
 
+    /** "종료하시겠습니까?"에서 예를 누르면 앱을 닫는다. */
+    @PluginMethod
+    public void exit(PluginCall call) {
+        call.resolve();
+        getActivity().runOnUiThread(() -> getActivity().finishAndRemoveTask());
+    }
+
     /** 테마가 바뀔 때 상태바·내비게이션바 색을 맞춘다. */
     @PluginMethod
     public void bars(PluginCall call) {
