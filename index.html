@@ -622,7 +622,7 @@ function vBackup(){
   return ''+
   '<div class="top"><button class="iconbtn" data-act="home" aria-label="뒤로">'+BACK+'</button><div class="title">백업</div><div style="width:44px"></div></div>'+
   '<div class="note">기록과 영수증 사진은 서버에 자동으로 보관돼요. 백업은 혹시 모를 때를 위해 파일로 따로 보관하는 기능이에요.</div>'+
-  '<label class="toggle"><input type="checkbox" data-act="togautosave"'+(autoSaveOn()?' checked':'')+'><span><b>저장할 때 사진을 폰에도 저장</b><br><span class="sub" style="font-size:13px">이 폰의 '+(NATIVE?'사진/오늘얼마/월별 폴더':'다운로드 폴더')+'에 날짜_품목_금액 이름으로 저장돼요</span></span></label>'+
+  '<label class="toggle"><input type="checkbox" data-act="togautosave"'+(autoSaveOn()?' checked':'')+'><span><b>저장할 때 사진을 폰에도 저장</b><br><span class="sub" style="font-size:13px">이 폰의 '+(NATIVE?'사진/오늘얼마/2026년 11월 같은 월별 폴더':'다운로드 폴더')+'에 날짜_품목_금액 이름으로 저장돼요</span></span></label>'+
   '<div>'+storeBtn()+'</div>'+
   '<div class="form"><div class="field"><label>내보낼 기록</label><div style="font-weight:600">'+esc(storeLabel())+' · 전체 기간 <span class="num">'+all.length+'건</span> · '+won(dayTotal(all))+'</div></div></div>'+
   '<button class="btn" data-act="exportcsv"'+(all.length?'':' disabled')+'>엑셀용 파일(CSV) 내려받기</button>'+
@@ -1064,7 +1064,7 @@ function downloadBlob(blob,name){
   if(NATIVE){
     var img=(blob.type||'').indexOf('image/')===0;var mm=/^(\d{4})(\d{2})\d{2}_/.exec(name);
     var rd=new FileReader();rd.onload=function(){
-      nativeCall('save',{data:String(rd.result),name:name,mime:blob.type||'application/octet-stream',sub:img&&mm?mm[1]+'-'+mm[2]:''})
+      nativeCall('save',{data:String(rd.result),name:name,mime:blob.type||'application/octet-stream',sub:img&&mm?mm[1]+'년 '+mm[2]+'월':''})
         .catch(function(err){toast('저장하지 못했어요: '+((err&&err.message)||''))})};
     rd.readAsDataURL(blob);return}
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;

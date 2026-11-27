@@ -35,7 +35,7 @@ public class SaverPlugin extends Plugin {
         int comma = data.indexOf(',');
         if (data.startsWith("data:") && comma > 0) data = data.substring(comma + 1);
         boolean image = mime.startsWith("image/");
-        String folder = (image ? Environment.DIRECTORY_PICTURES : Environment.DIRECTORY_DOWNLOADS) + "/오늘얼마" + (sub.isEmpty() ? "" : "/" + sub.replaceAll("[^0-9A-Za-z가-힣_-]", ""));
+        String folder = (image ? Environment.DIRECTORY_PICTURES : Environment.DIRECTORY_DOWNLOADS) + "/오늘얼마" + (sub.isEmpty() ? "" : "/" + sub.replaceAll("[^0-9A-Za-z가-힣 _-]", "").trim());
         try {
             byte[] bytes = Base64.decode(data, Base64.DEFAULT);
             ContentResolver cr = getContext().getContentResolver();
