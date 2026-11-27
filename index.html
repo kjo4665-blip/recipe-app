@@ -1122,7 +1122,7 @@ async function startScan(){
   }catch(err){
     var msg=String((err&&(err.code||err.message))||'');
     if(/cancel/i.test(msg))return;
-    toast('스캐너를 열 수 없어 일반 카메라로 열어요');$('#f-cam').click()}}
+    var detail=String((err&&err.message)||msg||'').slice(0,80);S.err='스캐너를 열 수 없었어요: '+detail;render();toast('스캐너 오류: '+detail);setTimeout(function(){$('#f-cam').click()},1200)}}
 var payP=null;
 function payCall(m,o){var C=window.Capacitor;
   if(C.registerPlugin){payP=payP||C.registerPlugin('Pay');return payP[m](o||{})}
