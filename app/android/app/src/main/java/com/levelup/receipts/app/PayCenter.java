@@ -47,8 +47,42 @@ public final class PayCenter {
             recent.put(key);
             while (recent.length() > 60) recent.remove(0);
 
+            // 같은 결제가 다른 앱 알림으로 또 오면(5분 안, 같은 금액·날짜) 하나로 합친다
+            long nowMs = System.currentTimeMillis();
+            JSONArray rp = new JSONArray(p.getString("recentPay", "[]")), rpOut = new JSONArray();
+            boolean seen = false;
+            for (int k = 0; k < rp.length(); k++) {
+                JSONObject r = rp.optJSONObject(k); if (r == null || nowMs - r.optLong("at") > 30 * 60 * 1000L) continue;
+                rpOut.put(r);
+                if (r.optLong("amount") == i.amount && i.date.equals(r.optString("date")) && i.kind.equals(r.optString("kind"))
+                    && Math.abs(nowMs - r.optLong("at")) < 5 * 60 * 1000L
+                    && (i.company.isEmpty() || r.optString("company").isEmpty() || i.company.equals(r.optString("company")))) seen = true;
+            }
+            JSONArray pend0 = new JSONArray(p.getString("pending", "[]"));
+            if (seen) {
+                for (int k = 0; k < pend0.length(); k++) {
+                    JSONObject q = pend0.optJSONObject(k);
+                    if (q == null || q.optLong("amount") != i.amount || !i.date.equals(q.optString("date")) || !i.kind.equals(q.optString("kind"))) continue;
+                    boolean changed = false;
+                    if (q.optString("place").isEmpty() && !i.place.isEmpty()) { q.put("place", i.place); changed = true; }
+                    if (q.optString("card").isEmpty() && !i.card.isEmpty()) { q.put("card", i.card); changed = true; }
+                    if (q.optString("company").isEmpty() && !i.company.isEmpty()) { q.put("company", i.company); changed = true; }
+                    if (q.optString("install").isEmpty() && !i.install.isEmpty()) { q.put("install", i.install); changed = true; }
+                    if (q.optBoolean("noDate") && !i.noDate) { q.put("time", i.time); q.put("noDate", false); changed = true; }
+                    if (changed) { p.edit().putString("recent", recent.toString()).putString("pending", pend0.toString()).apply(); notifyItem(ctx, q); }
+                    break;
+                }
+                p.edit().putString("recent", recent.toString()).apply();
+                return;
+            }
+            JSONObject rr = new JSONObject();
+            rr.put("amount", i.amount); rr.put("date", i.date); rr.put("kind", i.kind); rr.put("company", i.company); rr.put("at", nowMs);
+            rpOut.put(rr);
+            p.edit().putString("recentPay", rpOut.toString()).apply();
+
             JSONObject o = new JSONObject();
             o.put("id", UUID.randomUUID().toString().substring(0, 12));
+            o.put("noDate", i.noDate);
             o.put("kind", i.kind); o.put("company", i.company); o.put("card", i.card);
             o.put("amount", i.amount); o.put("date", i.date); o.put("time", i.time);
             o.put("place", i.place); o.put("install", i.install); o.put("source", source);
