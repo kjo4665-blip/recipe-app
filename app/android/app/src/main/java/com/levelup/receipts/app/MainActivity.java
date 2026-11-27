@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(SaverPlugin.class);
         registerPlugin(PayPlugin.class);
+        registerPlugin(ScanPlugin.class);
         super.onCreate(savedInstanceState);
         takePay(getIntent());
     }
